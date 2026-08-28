@@ -35,7 +35,7 @@ export const firebaseService = {
       id: fbUser.uid,
       name,
       email: fbUser.email || email,
-      storeName: storeName || 'Minha Loja & Brik',
+      storeName: storeName || 'Minha Loja & BRICK',
       phone: phone || '',
       avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
       createdAt: new Date().toISOString(),

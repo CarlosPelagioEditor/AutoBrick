@@ -257,7 +257,7 @@ export const AntiScamChecklist: React.FC = () => {
       <div className="bg-gradient-to-r from-slate-900 via-rose-950/40 to-slate-900 border border-rose-500/30 rounded-3xl p-6 text-white shadow-xl">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold mb-2">
           <ShieldAlert className="w-3.5 h-3.5" />
-          Segurança no Brik & Checklist Anti-Golpe
+          Segurança no BRICK & Checklist Anti-Golpe
         </div>
         <h1 className="text-2xl font-black text-white">
           Guia de Testes Presenciais & Dossiê Anti-Golpe
@@ -430,7 +430,7 @@ export const AntiScamChecklist: React.FC = () => {
         <div className="lg:col-span-5 space-y-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
             <h2 className="text-sm font-black text-amber-400 flex items-center gap-2">
-              <Lock className="w-4 h-4" /> Dossiê: Os 5 Maiores Golpes do Brik
+              <Lock className="w-4 h-4" /> Dossiê: Os 5 Maiores Golpes do BRICK
             </h2>
             <p className="text-xs text-slate-400">
               Conheça os truques mais usados pelos estelionatários em negociações presenciais e virtuais:
@@ -456,7 +456,7 @@ export const AntiScamChecklist: React.FC = () => {
             {/* Golden Rule */}
             <div className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 p-4 rounded-2xl border border-amber-500/30 space-y-1 text-xs">
               <span className="font-black text-amber-400 flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5" /> Regra de Ouro do Brik:
+                <Zap className="w-3.5 h-3.5" /> Regra de Ouro do BRICK:
               </span>
               <p className="text-slate-300 leading-relaxed text-[11px]">
                 Negocie sempre em local público e seguro (Shopping Center, Supermercado, posto de combustível com câmeras). Nunca entregue o produto antes do dinheiro estar 100% compensado no extrato do seu banco.

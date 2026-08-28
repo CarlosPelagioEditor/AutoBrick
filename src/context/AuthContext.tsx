@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: firebaseUser.uid,
           name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário Nuvem',
           email: firebaseUser.email || '',
-          storeName: 'Brik Multiuso & Negócios',
+          storeName: 'BRICK Multiuso & Negócios',
           avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(firebaseUser.uid)}`,
           createdAt: new Date().toISOString(),
         };
@@ -226,7 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         name,
         email,
-        storeName: storeName || 'Negócios & Brik',
+        storeName: storeName || 'Negócios & BRICK',
         phone: phone || '',
         avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
         createdAt: new Date().toISOString(),

@@ -60,20 +60,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Brand Logo */}
           <div
             onClick={() => onTabChange('dashboard')}
-            className="flex items-center gap-2 cursor-pointer select-none min-w-0"
+            className="flex items-center gap-2.5 cursor-pointer select-none min-w-0"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 flex items-center justify-center text-slate-950 font-black text-base sm:text-lg shadow-lg shadow-amber-500/20 shrink-0">
-              ⚡
-            </div>
+            <img
+              src="/logo.png"
+              alt="Autobrick Logo"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shadow-lg shadow-amber-500/20 shrink-0 border border-amber-500/40"
+              referrerPolicy="no-referrer"
+            />
             <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="text-xs sm:text-sm font-black tracking-tight text-white truncate">
-                  AUTOBRICK <span className="text-amber-400 font-extrabold">& BRIK MASTER</span>
-                </span>
-              </div>
-              <div className="text-[9px] sm:text-[10px] text-slate-400 font-medium truncate hidden sm:block">
-                Sua Central Completa de Lucro & Trocas
-              </div>
+              <span className="text-sm sm:text-base font-black tracking-tight text-white">
+                Autobrick
+              </span>
             </div>
           </div>
 
@@ -252,7 +250,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 {users.map((u) => (
                   <option key={u.id} value={u.id} className="bg-slate-900 text-white">
-                    👤 {u.name.split(' ')[0]} ({u.storeName || 'Brik'})
+                    👤 {u.name.split(' ')[0]} ({u.storeName || 'BRICK'})
                   </option>
                 ))}
               </select>

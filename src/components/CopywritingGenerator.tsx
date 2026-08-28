@@ -135,7 +135,7 @@ export const CopywritingGenerator: React.FC<CopywritingGeneratorProps> = ({
       }
 
       if (includeTradeOption && !enrichedFullText.includes('troca')) {
-        enrichedFullText += `\n\n🔄 ACEITO TROCAS / BRIK:\n• Aceito itens de menor valor com volta em dinheiro (sob avaliação justa para revenda).`;
+        enrichedFullText += `\n\n🔄 ACEITO TROCAS / BRICK:\n• Aceito itens de menor valor com volta em dinheiro (sob avaliação justa para revenda).`;
       }
 
       if (includeWarranty && !enrichedFullText.includes('Garantia')) {
@@ -187,7 +187,7 @@ export const CopywritingGenerator: React.FC<CopywritingGeneratorProps> = ({
         title,
         highlights: ['100% Funcional', 'Revisado', 'Aceito Cartão'],
         fullText: text,
-        instagramCaption: `Disponível: ${productPayload.model}! ✨ Perfeito estado, por apenas ${priceFormatted}. Chama no Direct/WhatsApp! 🚀 #brik #seminovos`,
+        instagramCaption: `Disponível: ${productPayload.model}! ✨ Perfeito estado, por apenas ${priceFormatted}. Chama no Direct/WhatsApp! 🚀 #BRICK #seminovos`,
         isAiGenerated: false,
       });
     } finally {
@@ -241,7 +241,7 @@ export const CopywritingGenerator: React.FC<CopywritingGeneratorProps> = ({
             {vehicles.length > 0 ? (
               <div>
                 <label className="text-[11px] font-semibold text-slate-400 mb-1.5 block">
-                  Produto do seu Brik
+                  Produto do seu BRICK
                 </label>
                 <select
                   value={selectedItemId}
@@ -555,7 +555,7 @@ export const CopywritingGenerator: React.FC<CopywritingGeneratorProps> = ({
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-300">
-                  Formatação otimizada com negritos (*texto*) para envio direto a clientes interessados ou grupos de brik.
+                  Formatação otimizada com negritos (*texto*) para envio direto a clientes interessados ou grupos de BRICK.
                 </p>
               </div>
 
@@ -567,7 +567,7 @@ export const CopywritingGenerator: React.FC<CopywritingGeneratorProps> = ({
               </div>
               <h3 className="text-base font-bold text-white">Nenhum anúncio gerado ainda</h3>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Selecione um produto do seu brik ao lado, configure os canais e clique em "Gerar Anúncio Turbo" para ver a mágica da IA.
+                Selecione um produto do seu BRICK ao lado, configure os canais e clique em "Gerar Anúncio Turbo" para ver a mágica da IA.
               </p>
               <button
                 onClick={handleGenerate}

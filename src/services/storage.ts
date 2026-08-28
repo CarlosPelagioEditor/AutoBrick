@@ -56,7 +56,7 @@ const INITIAL_CLIENTS: Client[] = [
   {
     id: 'cli_rodrigo_motos_03',
     userId: 'usr_carlos_brick_01',
-    name: 'Rodrigo Fontana (Brik de Carros/Motos)',
+    name: 'Rodrigo Fontana (BRICK de Carros/Motos)',
     phone: '(11) 99887-1122',
     cityOrNeighborhood: 'São Bernardo do Campo/SP',
     notes: 'Negociante parceiro de veículos e motos. Aceita rolo com volta rápida.',
@@ -82,19 +82,19 @@ const INITIAL_CLIENTS: Client[] = [
 const INITIAL_USERS: User[] = [
   {
     id: 'usr_carlos_brick_01',
-    name: 'Carlos Henrique (Mestre do Brik)',
+    name: 'Carlos Henrique (Mestre do BRICK)',
     email: 'carlos.brick@autoprime.com.br',
     phone: '(11) 98765-4321',
-    storeName: 'CH Brik Multiuso & Negócios Rápidos',
+    storeName: 'CH BRICK Multiuso & Negócios Rápidos',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     createdAt: '2025-01-10T10:00:00.000Z',
   },
   {
     id: 'usr_mariana_motors_02',
-    name: 'Mariana Duarte (Brik & Trocas Express)',
+    name: 'Mariana Duarte (BRICK & Trocas Express)',
     email: 'mariana@duartemotors.com.br',
     phone: '(41) 99123-8899',
-    storeName: 'Duarte Brik & Eletro-Eletrônicos',
+    storeName: 'Duarte BRICK & Eletro-Eletrônicos',
     avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
     createdAt: '2025-02-15T14:30:00.000Z',
   },
@@ -130,7 +130,7 @@ const INITIAL_ITEMS: BrickItem[] = [
     detailing: 40, // Limpeza interna e externa especializada
     tiresWheels: 0,
     documentation: 0,
-    commissions: 50, // Comissão do amigo que indicou o brik
+    commissions: 50, // Comissão do amigo que indicou o BRICK
     marketing: 30, // Destaque na OLX
     hiddenDefectReservePercent: 3.0,
     notes: 'Console 100% silencioso, sem detalhes estéticos. Lacres de fábrica intactos.',
@@ -510,7 +510,7 @@ export const storageService = {
     const clients = this.getClientsByUserId(userId);
     const exportObject = {
       exportVersion: '3.0',
-      system: 'AutoBrick & Brik Universal Copilot & CRM',
+      system: 'AUTOBRICK & BRICK Universal Copilot & CRM',
       exportedAt: new Date().toISOString(),
       user,
       items,

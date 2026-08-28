@@ -185,7 +185,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
             className="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 shrink-0"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            Novo Item no Brik
+            Novo Item no BRICK
           </button>
         </div>
 
@@ -236,7 +236,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
           <Package className="w-12 h-12 text-slate-600 mx-auto mb-3" />
           <h3 className="text-base font-bold text-white mb-1">Nenhum item encontrado</h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
-            Não encontramos nenhum produto no brik com os filtros atuais.
+            Não encontramos nenhum produto no BRICK com os filtros atuais.
           </p>
           <button
             onClick={onOpenNewVehicle}
@@ -495,7 +495,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
                     {/* Delete Item Button */}
                     <button
                       onClick={(e) => handleDeleteClick(item, e)}
-                      title="Excluir Item do Brik"
+                      title="Excluir Item do BRICK"
                       className="p-2.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 border border-slate-700 transition-all"
                     >
                       <Trash2 className="w-4 h-4" />

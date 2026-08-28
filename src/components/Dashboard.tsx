@@ -128,10 +128,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              Gestão Universal de Brik &bull; Games, TVs, Celulares, Carros & Eletros
+              Gestão Universal de BRICK &bull; Games, TVs, Celulares, Carros & Eletros
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Painel Financeiro & Central do Brik
+              Painel Financeiro & Central do BRICK
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
               Olá, <span className="font-bold text-white">{currentUser?.name || 'Revendedor'}</span>.
@@ -145,7 +145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Package className="w-4 h-4 stroke-[3]" />
-              Novo Item no Brik
+              Novo Item no BRICK
             </button>
             {onOpenReceiptModal && (
               <button
@@ -166,7 +166,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 1: Capital Ativo Investido */}
         <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl relative overflow-hidden">
           <div className="flex items-center justify-between text-slate-400 text-xs font-semibold mb-2">
-            <span>Capital Ativo no Brik</span>
+            <span>Capital Ativo no BRICK</span>
             <DollarSign className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl font-black text-white">
@@ -227,7 +227,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="bg-slate-900/80 border border-slate-800 p-5 md:p-6 rounded-3xl space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black text-white flex items-center gap-2">
-            <Layers className="w-4 h-4 text-amber-400" /> Distribuição do Brik por Categoria
+            <Layers className="w-4 h-4 text-amber-400" /> Distribuição do BRICK por Categoria
           </h2>
           <span className="text-xs text-slate-400 font-medium">
             Total de {vehicles.length} produtos cadastrados
@@ -510,7 +510,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 md:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black text-white flex items-center gap-2">
-            <Package className="w-4 h-4 text-amber-400" /> Itens Recentes no Brik
+            <Package className="w-4 h-4 text-amber-400" /> Itens Recentes no BRICK
           </h2>
           <button
             onClick={onOpenNewVehicle}

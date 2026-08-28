@@ -48,7 +48,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
         {/* Title and Confirmation Details */}
         <div className="space-y-2">
           <h3 className="text-lg font-black text-white">
-            Excluir Item do Brik?
+            Excluir Item do BRICK?
           </h3>
           <p className="text-xs text-slate-400 leading-relaxed">
             Tem certeza que deseja excluir este item permanentemente? Esta ação removerá o produto e todo o histórico financeiro associado.

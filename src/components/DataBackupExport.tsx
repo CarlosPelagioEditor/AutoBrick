@@ -123,7 +123,7 @@ export const DataBackupExport: React.FC = () => {
 
     const csv = [headers.join(';'), ...rows].join('\r\n');
     const dateStr = new Date().toISOString().split('T')[0];
-    downloadCSV(csv, `AutoBrick_Estoque_${dateStr}.csv`);
+    downloadCSV(csv, `AUTOBRICK_Estoque_${dateStr}.csv`);
     setDownloadSuccess('inventory');
     setTimeout(() => setDownloadSuccess(null), 3000);
   };
@@ -177,7 +177,7 @@ export const DataBackupExport: React.FC = () => {
 
     const csv = [headers.join(';'), ...rows].join('\r\n');
     const dateStr = new Date().toISOString().split('T')[0];
-    downloadCSV(csv, `AutoBrick_Vendas_Lucros_${dateStr}.csv`);
+    downloadCSV(csv, `AUTOBRICK_Vendas_Lucros_${dateStr}.csv`);
     setDownloadSuccess('sales');
     setTimeout(() => setDownloadSuccess(null), 3000);
   };
@@ -219,7 +219,7 @@ export const DataBackupExport: React.FC = () => {
 
     const csv = [headers.join(';'), ...rows].join('\r\n');
     const dateStr = new Date().toISOString().split('T')[0];
-    downloadCSV(csv, `AutoBrick_Clientes_CRM_${dateStr}.csv`);
+    downloadCSV(csv, `AUTOBRICK_Clientes_CRM_${dateStr}.csv`);
     setDownloadSuccess('clients');
     setTimeout(() => setDownloadSuccess(null), 3000);
   };
@@ -269,7 +269,7 @@ export const DataBackupExport: React.FC = () => {
             Central de Backup & Exportação de Dados
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-            Segurança, Planilhas Excel & Backup do Brik
+            Segurança, Planilhas Excel & Backup do BRICK
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
             Exporte suas planilhas de estoque e lucros em formato Excel/CSV para controle contábil, e faça backups completos em JSON para nunca perder seus dados de negociações e clientes.

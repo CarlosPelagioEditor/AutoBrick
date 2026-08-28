@@ -122,7 +122,7 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
   const handleDeleteItem = () => {
     if (initialVehicle && onDelete) {
-      if (confirm(`Deseja realmente excluir permanentemente "${initialVehicle.model}" do seu brik?`)) {
+      if (confirm(`Deseja realmente excluir permanentemente "${initialVehicle.model}" do seu BRICK?`)) {
         onDelete(initialVehicle.id);
         onClose();
       }
@@ -245,7 +245,7 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-black text-white truncate">
-                  {initialVehicle ? 'Editar Item do Brik' : 'Cadastrar Novo Item'}
+                  {initialVehicle ? 'Editar Item do BRICK' : 'Cadastrar Novo Item'}
                 </h2>
                 <span className="text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 shrink-0">
                   {currentCategory.name.split('(')[0]}
@@ -810,7 +810,7 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
                   <div className="sm:col-span-2 md:col-span-3">
                     <label className="block text-xs font-bold text-slate-200 mb-1.5">
-                      Notas & Observações do Brik
+                      Notas & Observações do BRICK
                     </label>
                     <textarea
                       rows={2}
@@ -1068,7 +1068,7 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 min-h-[44px]"
               >
                 <Check className="w-5 h-5 stroke-[3]" />
-                <span>Salvar Item no Brik</span>
+                <span>Salvar Item no BRICK</span>
               </button>
             </div>
           </div>

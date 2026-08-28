@@ -156,7 +156,7 @@ export const ProfitGoalsAndTurnover: React.FC = () => {
             {/* Reinvestment Capital */}
             <div className="bg-slate-950 p-4 rounded-2xl border border-sky-500/30 space-y-1">
               <span className="text-[10px] uppercase font-bold text-sky-400 block tracking-wider">
-                Capital de Giro (Reinvestimento em Novos Briks)
+                Capital de Giro (Reinvestimento em Novos BRICKs)
               </span>
               <div className="text-2xl font-black text-sky-400">{formatBRL(reinvestmentCapital)}</div>
               <span className="text-[10px] text-slate-400 block">

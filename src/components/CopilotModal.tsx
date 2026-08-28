@@ -118,7 +118,7 @@ export const CopilotModal: React.FC<CopilotModalProps> = ({
         `💰 Valor: ${formatBRL(vehicle.salePrice || metrics.targetPrice15Percent)} no PIX\n\n` +
         `📍 Retirada em mãos ou entrega a combinar.\n` +
         `⚠️ Golpistas e curiosos não percam tempo. Não faço envio por terceiros sem pagamento prévio.`,
-      instagramCaption: `Disponível para venda: ${vehicle.model}! Impecável e revisado. Garanta pelo direct! #brik #vendas #seminovos`,
+      instagramCaption: `Disponível para venda: ${vehicle.model}! Impecável e revisado. Garanta pelo direct! #BRICK #vendas #seminovos`,
       antiCuriousDisclaimer: 'Aviso: Golpistas do falso comprovante/Uber não percam tempo.',
     });
     setIsLoadingAd(false);
@@ -151,7 +151,7 @@ export const CopilotModal: React.FC<CopilotModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-black text-white flex items-center gap-2">
-                Copiloto IA & Estratégia de Brik
+                Copiloto IA & Estratégia de BRICK
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
                   {vehicle.model}
                 </span>

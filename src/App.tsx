@@ -167,8 +167,16 @@ function MainApp() {
 
       {/* Footer info */}
       <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>AutoBrick & Brik Master &bull; Sistema Universal de Gestão Financeira, Giro & Negociações</span>
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <img
+              src="/logo.png"
+              alt="Autobrick"
+              className="w-5 h-5 rounded-full object-cover border border-amber-500/30"
+              referrerPolicy="no-referrer"
+            />
+            <span className="font-semibold text-slate-400">Autobrick &bull; Sistema Universal de Gestão & Negociações</span>
+          </div>
           <span className="text-amber-400/80">Games &bull; TVs &bull; Celulares &bull; Carros &bull; Informática &bull; Ferramentas</span>
         </div>
       </footer>

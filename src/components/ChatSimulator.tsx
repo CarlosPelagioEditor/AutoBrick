@@ -452,7 +452,7 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({ initialVehicle }) 
         </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center text-slate-400">
-          Nenhum item cadastrado no estoque para simulação. Cadastre um item no Brik primeiro.
+          Nenhum item cadastrado no estoque para simulação. Cadastre um item no BRICK primeiro.
         </div>
       )}
 

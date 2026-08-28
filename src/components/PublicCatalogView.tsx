@@ -41,7 +41,7 @@ export const PublicCatalogView: React.FC = () => {
   });
 
   const generateCatalogWhatsAppText = () => {
-    let msg = `🔥 *CATÁLOGO DE PRODUTOS DISPONÍVEIS - ${currentUser?.storeName || 'BRIK MASTER'}* 🔥\n`;
+    let msg = `🔥 *CATÁLOGO DE PRODUTOS DISPONÍVEIS - ${currentUser?.storeName || 'BRICK MASTER'}* 🔥\n`;
     msg += `✅ *Produtos revisados, com garantia e pronta entrega!*\n\n`;
 
     filteredItems.forEach((item, index) => {
@@ -81,17 +81,25 @@ export const PublicCatalogView: React.FC = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 via-amber-950/40 to-slate-900 border border-amber-500/30 rounded-3xl p-6 text-white shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold mb-2">
-              <ShoppingBag className="w-3.5 h-3.5" />
-              Vitrine Pública & Catálogo para WhatsApp
+          <div className="flex items-start gap-4">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-14 h-14 rounded-2xl object-cover border border-amber-500/40 shadow-lg shadow-amber-500/10 shrink-0 hidden sm:block"
+              referrerPolicy="no-referrer"
+            />
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold mb-2">
+                <ShoppingBag className="w-3.5 h-3.5" />
+                Vitrine Pública & Catálogo para WhatsApp &bull; BRICK MASTER
+              </div>
+              <h1 className="text-2xl font-black text-white">
+                Catálogo Digital de Vendas ({inStockItems.length} itens ativos)
+              </h1>
+              <p className="text-xs text-slate-300 max-w-2xl mt-1">
+                Vitrine limpa e profissional para enviar aos seus clientes. Exibe apenas os preços de venda e especificações, sem revelar seus custos de compra.
+              </p>
             </div>
-            <h1 className="text-2xl font-black text-white">
-              Catálogo Digital de Vendas ({inStockItems.length} itens ativos)
-            </h1>
-            <p className="text-xs text-slate-300 max-w-2xl mt-1">
-              Vitrine limpa e profissional para enviar aos seus clientes. Exibe apenas os preços de venda e especificações, sem revelar seus custos de compra.
-            </p>
           </div>
 
           <button

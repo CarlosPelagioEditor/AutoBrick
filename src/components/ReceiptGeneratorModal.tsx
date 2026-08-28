@@ -39,7 +39,7 @@ export const ReceiptGeneratorModal: React.FC<ReceiptGeneratorModalProps> = ({
   const [sellerName, setSellerName] = useState<string>(currentUser?.name || 'Carlos Silva');
   const [sellerDocument, setSellerDocument] = useState<string>('000.000.000-00');
   const [sellerPhone, setSellerPhone] = useState<string>('(11) 99999-9999');
-  const [sellerStoreName, setSellerStoreName] = useState<string>(currentUser?.storeName || 'Brik Master & Eletrônicos');
+  const [sellerStoreName, setSellerStoreName] = useState<string>(currentUser?.storeName || 'BRICK MASTER & Eletrônicos');
   
   const [itemModel, setItemModel] = useState<string>(activeItem?.model || 'iPhone 13 128GB');
   const [serialOrImei, setSerialOrImei] = useState<string>(activeItem?.serialOrImei || '');
@@ -307,16 +307,24 @@ export const ReceiptGeneratorModal: React.FC<ReceiptGeneratorModalProps> = ({
             <div className="flex-1 bg-white text-slate-950 p-6 rounded-2xl shadow-inner font-sans text-xs space-y-4 border border-slate-200">
               
               {/* Document Header */}
-              <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
-                <div>
-                  <h1 className="text-base font-black uppercase tracking-tight text-slate-900">
-                    {receiptType === 'sale_receipt' ? 'Recibo de Venda & Termo de Garantia' : 'Termo de Compra & Declaração de Procedência'}
-                  </h1>
-                  <p className="text-[10px] text-slate-600 font-bold">
-                    {sellerStoreName || sellerName} &bull; Contato: {sellerPhone}
-                  </p>
+              <div className="border-b-2 border-slate-900 pb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="/logo.png"
+                    alt="Logo"
+                    className="w-10 h-10 rounded-full object-cover border border-slate-300 shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div>
+                    <h1 className="text-sm sm:text-base font-black uppercase tracking-tight text-slate-900">
+                      {receiptType === 'sale_receipt' ? 'Recibo de Venda & Termo de Garantia' : 'Termo de Compra & Declaração de Procedência'}
+                    </h1>
+                    <p className="text-[10px] text-slate-600 font-bold">
+                      {sellerStoreName || sellerName} &bull; Contato: {sellerPhone}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <span className="text-[10px] text-slate-500 block">Data da Operação</span>
                   <span className="text-xs font-black text-slate-900">{formatDateBR(saleDate)}</span>
                 </div>

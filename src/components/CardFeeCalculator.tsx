@@ -202,7 +202,7 @@ export const CardFeeCalculator: React.FC<CardFeeCalculatorProps> = ({
           Calculadora de Taxas & Tabela Pronta para WhatsApp
         </h1>
         <p className="text-xs text-slate-300 max-w-2xl mt-1">
-          Calcule em segundos o repasse exato de juros da maquininha (1x a 18x) para o cliente ou descubra quanto você recebe líquido sem perder a margem de lucro do seu brik.
+          Calcule em segundos o repasse exato de juros da maquininha (1x a 18x) para o cliente ou descubra quanto você recebe líquido sem perder a margem de lucro do seu BRICK.
         </p>
       </div>
 

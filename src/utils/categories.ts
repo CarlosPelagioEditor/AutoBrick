@@ -93,7 +93,7 @@ export const CATEGORIES_CONFIG: Record<ItemCategory, CategoryInfo> = {
   },
   other: {
     id: 'other',
-    name: 'Outros Produtos & Lotes do Brik',
+    name: 'Outros Produtos & Lotes do BRICK',
     iconName: 'Package',
     emoji: '📦',
     marketPriceLabel: 'Valor de Referência / Mercado',

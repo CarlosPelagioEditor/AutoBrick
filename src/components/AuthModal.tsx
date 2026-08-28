@@ -341,7 +341,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   <Building className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Ex: CO Brik & Negócios"
+                    placeholder="Ex: CO BRICK & Negócios"
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
