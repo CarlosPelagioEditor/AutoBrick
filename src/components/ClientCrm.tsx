@@ -483,8 +483,8 @@ export const ClientCrm: React.FC = () => {
 
       {/* Modal: Client Create / Edit Form */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl p-6 space-y-5 my-8 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 sm:space-y-5 my-auto max-h-[96dvh] overflow-y-auto shadow-2xl">
             
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h2 className="text-base font-black text-white flex items-center gap-2">

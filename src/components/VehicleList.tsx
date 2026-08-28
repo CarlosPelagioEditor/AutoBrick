@@ -386,7 +386,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
                   </div>
 
                   {/* Middle Column: Financial Metrics */}
-                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-slate-800 shrink-0">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-slate-800 w-full lg:w-auto">
                     <div>
                       <div className="text-[10px] uppercase font-bold text-slate-500">
                         {categoryMeta.marketPriceLabel}
@@ -401,7 +401,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
                       </div>
                     </div>
 
-                    <div className="border-l border-slate-800 pl-4 sm:pl-6">
+                    <div className="border-l border-slate-800 pl-3 sm:pl-4">
                       <div className="text-[10px] uppercase font-bold text-slate-500">
                         Custo Total (Entrada)
                       </div>
@@ -413,7 +413,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
                       </div>
                     </div>
 
-                    <div className="border-l border-slate-800 pl-4 sm:pl-6">
+                    <div className="col-span-2 sm:col-span-1 border-t sm:border-t-0 sm:border-l border-slate-800 pt-2 sm:pt-0 sm:pl-4">
                       <div className="text-[10px] uppercase font-bold text-slate-500">
                         {item.status === 'sold' ? 'Preço de Venda' : 'Preço Anunciado / Meta'}
                       </div>

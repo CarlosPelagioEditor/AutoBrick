@@ -54,24 +54,24 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-3">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 gap-2 sm:gap-3">
           
           {/* Brand Logo */}
           <div
             onClick={() => onTabChange('dashboard')}
-            className="flex items-center gap-2.5 cursor-pointer select-none shrink-0"
+            className="flex items-center gap-2 cursor-pointer select-none min-w-0"
           >
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 flex items-center justify-center text-slate-950 font-black text-lg shadow-lg shadow-amber-500/20">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 flex items-center justify-center text-slate-950 font-black text-base sm:text-lg shadow-lg shadow-amber-500/20 shrink-0">
               ⚡
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-black tracking-tight text-white">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="text-xs sm:text-sm font-black tracking-tight text-white truncate">
                   AUTOBRICK <span className="text-amber-400 font-extrabold">& BRIK MASTER</span>
                 </span>
               </div>
-              <div className="text-[10px] text-slate-400 font-medium">
+              <div className="text-[9px] sm:text-[10px] text-slate-400 font-medium truncate hidden sm:block">
                 Sua Central Completa de Lucro & Trocas
               </div>
             </div>
@@ -201,13 +201,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Quick Actions & User Switcher */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             
             {/* Quick Action: New Item */}
             <button
               type="button"
               onClick={onOpenNewVehicle}
-              className="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-2.5 sm:px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span className="hidden sm:inline">Novo Item</span>
@@ -218,7 +218,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={onOpenReceiptModal}
               title="Gerar Recibo e Garantia"
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-2.5 sm:px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5 text-amber-400" />
               <span className="hidden sm:inline">Recibo / Garantia</span>
@@ -230,7 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={onOpenAuthModal}
                 title="Gerenciar Conta & Sincronização em Nuvem"
-                className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`p-2 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   cloudSyncStatus === 'online'
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
                     : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-amber-500/40 hover:text-white'
