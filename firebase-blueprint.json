@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profiles",
+      "description": "User profiles and store settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "operator", "seller"] },
+        "phone": { "type": "string" },
+        "storeName": { "type": "string" },
+        "storeAddress": { "type": "string" },
+        "storeDocument": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "vehicles": {
+      "title": "Stock Items (Vehicles, Electronics & Brik)",
+      "description": "Inventory items including products, trade-ins, costs, and sales status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "purchasePrice": { "type": "number" },
+        "targetPrice": { "type": "number" },
+        "status": { "type": "string" },
+        "entryDate": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "purchasePrice", "targetPrice", "status"]
+    },
+    "clients": {
+      "title": "CRM Clients and Wishlists",
+      "description": "Client database, wishlist orders, tags and transaction records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "name"]
+    },
+    "goals": {
+      "title": "User Profit & Turnover Goals",
+      "description": "Monthly targets, turnover goals and milestones",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "monthlyProfitTarget": { "type": "number" },
+        "maxDaysInStock": { "type": "number" }
+      },
+      "required": ["id", "userId"]
+    }
+  }
+}

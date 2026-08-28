@@ -1,0 +1,6 @@
+{
+  "name": "AutoBrick Copilot & Gestor Veicular",
+  "description": "Central universal para negociações e brik (games, smartphones, TVs, informática, veículos): gerador de anúncios IA para OLX/Facebook, mini-CRM com radar de encomendas, backup e planilhas Excel, avaliador de trocas com IA, simulador de maquininha até 18x, recibo e garantia com assinatura digital, checklist anti-golpe e vitrine WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
