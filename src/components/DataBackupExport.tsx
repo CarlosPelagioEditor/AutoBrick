@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useUpdate } from '../context/UpdateContext';
 import { calculateVehicleMetrics, formatBRL, formatDateBR, formatPercent } from '../utils/calculations';
 import { getCategoryInfo } from '../utils/categories';
 import { BrickItem } from '../types';
@@ -21,6 +22,9 @@ import {
   Cloud,
   Smartphone,
   Laptop,
+  Sparkles,
+  Zap,
+  Clock,
 } from 'lucide-react';
 
 export const DataBackupExport: React.FC = () => {
@@ -36,12 +40,30 @@ export const DataBackupExport: React.FC = () => {
     syncLocalToCloudNow,
     isCloudSyncing,
   } = useAuth();
+  const {
+    checkForUpdatesManually,
+    triggerTestUpdate,
+    isChecking: isCheckingUpdate,
+    isUpdateAvailable,
+    newVersionInfo,
+    openUpdateModal,
+  } = useUpdate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [importMessage, setImportMessage] = useState<string>('');
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [cloudSyncSuccess, setCloudSyncSuccess] = useState<string | null>(null);
+  const [updateCheckMessage, setUpdateCheckMessage] = useState<string | null>(null);
+
+  const handleManualCheckUpdate = async () => {
+    setUpdateCheckMessage(null);
+    const hasUpdate = await checkForUpdatesManually();
+    if (!hasUpdate) {
+      setUpdateCheckMessage('Seu AutoBrick já está na versão mais recente e sincronizado!');
+      setTimeout(() => setUpdateCheckMessage(null), 4000);
+    }
+  };
 
   const handleCloudSync = async () => {
     setCloudSyncSuccess(null);
@@ -477,6 +499,73 @@ export const DataBackupExport: React.FC = () => {
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{importMessage}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Automatic System Update & Version Synchronizer */}
+        <div className="bg-slate-900/90 border border-slate-800 p-5 md:p-6 rounded-3xl space-y-4 md:col-span-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Atualizações Automáticas do Código & Sistema</h3>
+                <p className="text-xs text-slate-400">
+                  O AutoBrick monitora alterações no código e novas compilações para manter seu aplicativo sempre sincronizado.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-amber-400">
+                Versão v1.3.0
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleManualCheckUpdate}
+              disabled={isCheckingUpdate}
+              className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 text-amber-400 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+              <span>{isCheckingUpdate ? 'Verificando Servidor...' : 'Verificar Atualizações Agora'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={triggerTestUpdate}
+              className="py-3 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <Zap className="w-4 h-4 text-amber-400 fill-current" />
+              <span>Simular Notificação & Testar Cronômetro (5 min)</span>
+            </button>
+          </div>
+
+          {updateCheckMessage && (
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+              <Check className="w-4 h-4 shrink-0" />
+              <span>{updateCheckMessage}</span>
+            </div>
+          )}
+
+          {isUpdateAvailable && (
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-400 animate-spin" />
+                <span>Nova versão detectada e aguardando aplicação!</span>
+              </div>
+              <button
+                type="button"
+                onClick={openUpdateModal}
+                className="px-3 py-1 bg-amber-500 text-slate-950 font-black text-xs rounded-lg hover:bg-amber-400 transition-all cursor-pointer"
+              >
+                Abrir Notificação
+              </button>
             </div>
           )}
         </div>

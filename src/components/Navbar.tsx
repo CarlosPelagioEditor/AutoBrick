@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useUpdate } from '../context/UpdateContext';
 import {
   LayoutDashboard,
   Package,
@@ -19,6 +20,9 @@ import {
   Database,
   Cloud,
   Smartphone,
+  RefreshCw,
+  Clock,
+  Zap,
 } from 'lucide-react';
 
 export type AppTab =
@@ -51,6 +55,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuthModal,
 }) => {
   const { currentUser, users, logout, switchUser, cloudSyncStatus, isCloudSyncing } = useAuth();
+  const {
+    isUpdateAvailable,
+    isDefinitive,
+    formattedTimeRemaining,
+    openUpdateModal,
+    triggerTestUpdate,
+    isChecking,
+  } = useUpdate();
 
   return (
     <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
@@ -201,6 +213,25 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Quick Actions & User Switcher */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             
+            {/* Automatic Update Indicator / Trigger */}
+            {isUpdateAvailable && (
+              <button
+                type="button"
+                onClick={openUpdateModal}
+                title={isDefinitive ? "Atualização Obrigatória" : `Atualização pendente (${formattedTimeRemaining})`}
+                className={`px-2.5 py-1.5 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer animate-pulse ${
+                  isDefinitive
+                    ? 'bg-rose-500 text-slate-950 border-rose-400 shadow-lg shadow-rose-500/30'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span className="hidden sm:inline">
+                  {isDefinitive ? 'Atualizar Agora' : `Atualização (${formattedTimeRemaining})`}
+                </span>
+              </button>
+            )}
+
             {/* Quick Action: New Item */}
             <button
               type="button"

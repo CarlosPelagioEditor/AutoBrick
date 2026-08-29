@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { UpdateProvider } from './context/UpdateContext';
+import { UpdateModal } from './components/UpdateModal';
+import { UpdateFloatingPill } from './components/UpdateFloatingPill';
 import { Navbar, AppTab } from './components/Navbar';
 import { Dashboard } from './components/Dashboard';
 import { VehicleList } from './components/VehicleList';
@@ -224,6 +227,10 @@ function MainApp() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
       />
+
+      {/* Code Update System Components */}
+      <UpdateModal />
+      <UpdateFloatingPill />
     </div>
   );
 }
@@ -231,7 +238,9 @@ function MainApp() {
 export function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <UpdateProvider>
+        <MainApp />
+      </UpdateProvider>
     </AuthProvider>
   );
 }

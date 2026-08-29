@@ -303,6 +303,48 @@ async function startServer() {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Dynamic server build tracking
+  let currentServerVersion = "1.3.0";
+  let currentServerBuildId = "ab-build-" + Date.now();
+  let currentServerBuildTime = Date.now();
+  let currentReleaseNotes = "Melhorias de desempenho, banco de dados e novas ferramentas de negociação.";
+
+  // App version check endpoint (polled by frontend)
+  app.get("/api/app-version", (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.json({
+      version: currentServerVersion,
+      buildId: currentServerBuildId,
+      buildTime: currentServerBuildTime,
+      releaseNotes: currentReleaseNotes,
+      serverTime: Date.now(),
+      features: [
+        "Sincronização em tempo real do banco de dados na nuvem",
+        "Novo sistema de detecção e notificação de atualizações automáticas",
+        "Melhorias no Copiloto IA e no avaliador de trocas",
+        "Otimizações de performance e segurança",
+      ],
+    });
+  });
+
+  // Endpoint to simulate an update release in runtime
+  app.post("/api/app-version/simulate-release", (req, res) => {
+    const patch = req.body?.version || `1.3.${Math.floor(Math.random() * 90 + 10)}`;
+    currentServerVersion = patch;
+    currentServerBuildId = "ab-build-" + Date.now();
+    currentServerBuildTime = Date.now();
+    currentReleaseNotes = req.body?.releaseNotes || "Nova compilação do sistema com atualizações de código detectadas no servidor.";
+    
+    res.json({
+      success: true,
+      message: "Nova versão simulada gerada com sucesso!",
+      version: currentServerVersion,
+      buildId: currentServerBuildId,
+    });
+  });
+
   // Copilot AI Analysis Endpoint for ANY Product / Brick Item
   app.post("/api/ai/copilot-analysis", async (req, res) => {
     const { vehicle, item, metrics } = req.body;

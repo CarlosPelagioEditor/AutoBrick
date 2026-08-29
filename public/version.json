@@ -1,0 +1,12 @@
+{
+  "version": "1.3.0",
+  "buildId": "ab-build-1756461400",
+  "buildTimestamp": 1756461400000,
+  "releaseDate": "2026-08-29",
+  "features": [
+    "Sincronização em tempo real do banco de dados na nuvem",
+    "Novo sistema de detecção e notificação de atualizações automáticas",
+    "Melhorias no Copiloto IA e no avaliador de trocas",
+    "Otimizações de performance e segurança"
+  ]
+}
