@@ -83,7 +83,7 @@ const INITIAL_USERS: User[] = [
   {
     id: 'usr_carlos_brick_01',
     name: 'Carlos Henrique (Mestre do BRICK)',
-    email: 'carlos.brick@autoprime.com.br',
+    email: 'RcarlinhosO13H@gmail.com',
     phone: '(11) 98765-4321',
     storeName: 'CH BRICK Multiuso & Negócios Rápidos',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
@@ -377,7 +377,14 @@ export const storageService = {
         localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(INITIAL_USERS));
         return INITIAL_USERS;
       }
-      return JSON.parse(data);
+      const list: User[] = JSON.parse(data);
+      // Ensure primary user email is up to date
+      const carlos = list.find((u) => u.id === 'usr_carlos_brick_01');
+      if (carlos && carlos.email !== 'RcarlinhosO13H@gmail.com') {
+        carlos.email = 'RcarlinhosO13H@gmail.com';
+        localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(list));
+      }
+      return list;
     } catch (e) {
       console.error('Error loading users:', e);
       return INITIAL_USERS;

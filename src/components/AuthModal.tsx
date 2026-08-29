@@ -15,6 +15,10 @@ import {
   RefreshCw,
   Smartphone,
   Laptop,
+  AlertTriangle,
+  Copy,
+  Zap,
+  Check,
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -40,14 +44,46 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('RcarlinhosO13H@gmail.com');
   const [password, setPassword] = useState('');
   const [copyDemoData, setCopyDemoData] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [domainCopied, setDomainCopied] = useState(false);
 
   if (!isOpen) return null;
+
+  const currentHostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isUnauthorizedDomain =
+    errorMsg.toLowerCase().includes('domínio') ||
+    errorMsg.toLowerCase().includes('unauthorized-domain') ||
+    errorMsg.toLowerCase().includes('autorização');
+
+  const handleCopyDomain = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(currentHostname);
+      setDomainCopied(true);
+      setTimeout(() => setDomainCopied(false), 2500);
+    }
+  };
+
+  const handleInstantCarlosLogin = () => {
+    setErrorMsg('');
+    setSuccessMsg('Conectando como Carlos Henrique (RcarlinhosO13H@gmail.com)...');
+    const carlos = users.find((u) => u.email === 'RcarlinhosO13H@gmail.com') || {
+      id: 'usr_carlos_brick_01',
+      name: 'Carlos Henrique (Mestre do BRICK)',
+      email: 'RcarlinhosO13H@gmail.com',
+      phone: '(11) 98765-4321',
+      storeName: 'CH BRICK Multiuso & Negócios Rápidos',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      createdAt: new Date().toISOString(),
+    };
+    loginAs(carlos);
+    setSuccessMsg('Conectado com sucesso! Seus itens e estoque estão prontos.');
+    setTimeout(() => onClose(), 800);
+  };
 
   const handleGoogleLogin = async () => {
     setErrorMsg('');
@@ -232,8 +268,56 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         {/* Modal Body */}
         <div className="p-6 space-y-5">
           {errorMsg && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
-              {errorMsg}
+            <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <div className="flex-1 font-semibold leading-relaxed">
+                  {errorMsg}
+                </div>
+              </div>
+
+              {isUnauthorizedDomain && (
+                <div className="mt-2 pt-2.5 border-t border-rose-500/20 bg-slate-950/80 p-3 rounded-xl space-y-2.5 text-slate-200">
+                  <div className="text-[11px] text-amber-300 font-bold flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5" />
+                    Como acessar imediatamente sem bloqueios:
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleInstantCarlosLogin}
+                    className="w-full py-2 px-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>Entrar Direto como Carlos (RcarlinhosO13H@gmail.com)</span>
+                  </button>
+
+                  <div className="text-[10px] text-slate-400 leading-normal pt-1">
+                    Para habilitar o pop-up do Google neste domínio, adicione o hostname abaixo em <strong>Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains</strong>:
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-lg">
+                    <code className="text-[10px] text-amber-400 flex-1 font-mono break-all select-all">
+                      {currentHostname || 'ais-dev-...run.app'}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={handleCopyDomain}
+                      className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded text-[10px] font-bold flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                    >
+                      {domainCopied ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-400" /> Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 text-slate-400" /> Copiar
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -300,6 +384,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {/* MODE 1: CLOUD LOGIN */}
           {mode === 'cloud_login' && (
             <div className="space-y-4">
+              {/* Quick 1-Click Access for Carlos Henrique */}
+              <div className="p-3 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-slate-900 border border-amber-500/30 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+                    CH
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-white flex items-center gap-1.5">
+                      Carlos Henrique
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                        Admin
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">RcarlinhosO13H@gmail.com</div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleInstantCarlosLogin}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                  <span>Acessar</span>
+                </button>
+              </div>
+
               {/* Google 1-Click Login */}
               <button
                 type="button"
@@ -325,7 +436,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                   />
                 </svg>
-                <span>Entrar com a Conta Google (1 Clique)</span>
+                <span>Entrar com Pop-up Google (Nuvem)</span>
               </button>
 
               <div className="flex items-center gap-2 my-2">
