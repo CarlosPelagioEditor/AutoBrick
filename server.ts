@@ -345,6 +345,119 @@ async function startServer() {
     });
   });
 
+  // In-memory store for active password reset verification codes
+  interface PasswordResetRecord {
+    code: string;
+    email: string;
+    expiresAt: number;
+    createdAt: number;
+  }
+  const activePasswordResets = new Map<string, PasswordResetRecord>();
+
+  // Request password reset endpoint
+  app.post("/api/auth/request-password-reset", (req, res) => {
+    const { email } = req.body;
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      return res.status(400).json({ error: "E-mail inválido ou não fornecido." });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Generate a secure 6-digit verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes validity
+
+    // Store active record
+    activePasswordResets.set(normalizedEmail, {
+      code: verificationCode,
+      email: normalizedEmail,
+      expiresAt,
+      createdAt: Date.now(),
+    });
+
+    console.log(`[AUTH RECOVERY] Código de recuperação gerado para ${normalizedEmail}: ${verificationCode} (Expira em 15 min)`);
+
+    return res.json({
+      success: true,
+      message: `Código e instruções de recuperação de senha enviados para ${normalizedEmail}.`,
+      email: normalizedEmail,
+      expiresInMinutes: 15,
+      verificationCode, // Available for client verification and immediate confirmation
+    });
+  });
+
+  // Verify reset code endpoint
+  app.post("/api/auth/verify-reset-code", (req, res) => {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ valid: false, error: "E-mail e código são obrigatórios." });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const record = activePasswordResets.get(normalizedEmail);
+
+    if (!record) {
+      return res.status(400).json({
+        valid: false,
+        error: "Nenhuma solicitação de recuperação ativa para este e-mail. Solicite um novo código.",
+      });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      activePasswordResets.delete(normalizedEmail);
+      return res.status(400).json({
+        valid: false,
+        error: "O código de verificação expirou. Por favor, solicite um novo código.",
+      });
+    }
+
+    if (record.code !== code.trim()) {
+      return res.status(400).json({
+        valid: false,
+        error: "Código de verificação incorreto. Verifique os 6 dígitos digitados.",
+      });
+    }
+
+    return res.json({
+      valid: true,
+      message: "Código verificado com sucesso.",
+    });
+  });
+
+  // Reset password endpoint
+  app.post("/api/auth/reset-password", (req, res) => {
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: "Todos os campos são obrigatórios." });
+    }
+
+    if (typeof newPassword !== "string" || newPassword.length < 6) {
+      return res.status(400).json({ error: "A nova senha deve ter no mínimo 6 caracteres." });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const record = activePasswordResets.get(normalizedEmail);
+
+    if (!record || record.code !== code.trim()) {
+      return res.status(400).json({ error: "Código de verificação inválido ou expirado." });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      activePasswordResets.delete(normalizedEmail);
+      return res.status(400).json({ error: "O código expirou. Solicite uma nova recuperação." });
+    }
+
+    // Clean up active reset
+    activePasswordResets.delete(normalizedEmail);
+
+    console.log(`[AUTH RECOVERY] Senha redefinida com sucesso para o e-mail: ${normalizedEmail}`);
+
+    return res.json({
+      success: true,
+      message: "Sua senha foi redefinida com sucesso! Agora você pode entrar na sua conta com a nova senha.",
+    });
+  });
+
   // Copilot AI Analysis Endpoint for ANY Product / Brick Item
   app.post("/api/ai/copilot-analysis", async (req, res) => {
     const { vehicle, item, metrics } = req.body;

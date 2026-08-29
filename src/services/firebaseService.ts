@@ -13,8 +13,7 @@ import {
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   User as FirebaseUser,
@@ -27,34 +26,22 @@ export function getFriendlyAuthErrorMessage(error: any): string {
   const msg = error?.message || '';
 
   if (code === 'auth/email-already-in-use') {
-    return 'Este e-mail já está cadastrado. Tente entrar na sua conta ou use outro e-mail.';
+    return 'Este e-mail já possui uma conta cadastrada no sistema. Por favor, acesse a aba "Entrar" ou utilize a "Recuperação de Senha".';
   }
   if (code === 'auth/invalid-email') {
-    return 'O formato do e-mail digitado é inválido. Verifique e tente novamente.';
+    return 'O formato do e-mail digitado é inválido. Verifique o endereço e tente novamente.';
   }
   if (code === 'auth/weak-password') {
-    return 'A senha é muito fraca. Digite pelo menos 6 caracteres.';
+    return 'A senha digitada é muito curta. Digite uma senha com pelo menos 6 caracteres.';
   }
   if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-    return 'E-mail ou senha incorretos. Verifique suas credenciais.';
+    return 'E-mail ou senha incorretos. Verifique suas credenciais ou solicite a recuperação de senha.';
   }
-  if (code === 'auth/operation-not-allowed') {
-    return 'O login por Google Pop-up requer ativação do provedor Google no Console do Firebase. Você pode utilizar a opção de Acesso Direto com seu e-mail do Google abaixo para criar sua conta isolada.';
-  }
-  if (code === 'auth/popup-closed-by-user') {
-    return 'A janela do Google foi fechada antes da escolha da conta. Clique novamente para selecionar sua conta.';
-  }
-  if (code === 'auth/popup-blocked') {
-    return 'O pop-up do Google foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site ou utilize o acesso por e-mail.';
+  if (code === 'auth/too-many-requests') {
+    return 'Muitas tentativas consecutivas. Por segurança, aguarde alguns instantes e tente novamente.';
   }
   if (code === 'auth/network-request-failed') {
-    return 'Falha de conexão com a rede. Verifique sua internet e tente novamente.';
-  }
-  if (code === 'auth/unauthorized-domain') {
-    return 'Domínio não listado no Firebase Authentication. Você pode conectar com seu e-mail Google diretamente para acessar sua conta independente e sincronizada.';
-  }
-  if (code === 'auth/cancelled-popup-request') {
-    return 'A solicitação de login anterior foi cancelada. Tente novamente.';
+    return 'Falha de conexão com a rede. Verifique sua conexão com a internet.';
   }
 
   return msg || 'Ocorreu um erro ao processar sua solicitação de autenticação.';
@@ -64,30 +51,6 @@ export const firebaseService = {
   // --- AUTHENTICATION ---
   onAuthChange(callback: (user: FirebaseUser | null) => void): Unsubscribe {
     return onAuthStateChanged(auth, callback);
-  },
-
-  async loginWithGoogle(): Promise<User> {
-    const provider = new GoogleAuthProvider();
-    provider.addScope('email');
-    provider.addScope('profile');
-    provider.setCustomParameters({ prompt: 'select_account' });
-    const userCredential = await signInWithPopup(auth, provider);
-    const fbUser = userCredential.user;
-
-    let profile = await this.getUserProfile(fbUser.uid);
-    if (!profile) {
-      profile = {
-        id: fbUser.uid,
-        name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Usuário Google',
-        email: fbUser.email || '',
-        storeName: `${fbUser.displayName || 'Minha Loja'} & BRICK`,
-        phone: fbUser.phoneNumber || '',
-        avatarUrl: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(fbUser.uid)}`,
-        createdAt: new Date().toISOString(),
-      };
-      await this.saveUserProfile(profile);
-    }
-    return profile;
   },
 
   async registerUser(email: string, password: string, name: string, storeName?: string, phone?: string): Promise<User> {
@@ -120,6 +83,10 @@ export const firebaseService = {
   async loginUser(email: string, password: string): Promise<FirebaseUser> {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential.user;
+  },
+
+  async sendPasswordReset(email: string): Promise<void> {
+    await sendPasswordResetEmail(auth, email);
   },
 
   async logout(): Promise<void> {

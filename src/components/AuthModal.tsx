@@ -14,12 +14,13 @@ import {
   Plus,
   Cloud,
   RefreshCw,
-  Smartphone,
-  Laptop,
   AlertTriangle,
-  Copy,
-  Zap,
+  KeyRound,
+  ArrowLeft,
+  Eye,
+  EyeOff,
   Check,
+  Send,
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -34,102 +35,63 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     loginAs,
     register,
     login,
-    loginWithGoogle,
+    requestPasswordReset,
+    resetPasswordWithCode,
     logout,
     cloudSyncStatus,
     syncLocalToCloudNow,
     isCloudSyncing,
   } = useAuth();
 
-  const [mode, setMode] = useState<'cloud_login' | 'cloud_register' | 'demo_profiles'>('cloud_login');
+  const [mode, setMode] = useState<'cloud_login' | 'cloud_register' | 'forgot_password' | 'demo_profiles'>('cloud_login');
 
+  // Form fields
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [copyDemoData, setCopyDemoData] = useState(false);
+
+  // Recovery fields
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [recoveryStep, setRecoveryStep] = useState<'request' | 'verify'>('request');
+  const [sentCodeHint, setSentCodeHint] = useState<string | null>(null);
+
+  // Status & Feedback
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [domainCopied, setDomainCopied] = useState(false);
-  const [googleEmailInput, setGoogleEmailInput] = useState('RcarlinhosO13H@gmail.com');
 
   if (!isOpen) return null;
 
-  const currentHostname = typeof window !== 'undefined' ? window.location.hostname : '';
-  const isUnauthorizedDomain =
-    errorMsg.toLowerCase().includes('domínio') ||
-    errorMsg.toLowerCase().includes('unauthorized-domain') ||
-    errorMsg.toLowerCase().includes('autorização');
-
-  const handleCopyDomain = () => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(currentHostname);
-      setDomainCopied(true);
-      setTimeout(() => setDomainCopied(false), 2500);
-    }
-  };
-
-  const handleInstantGoogleEmailLogin = (targetEmail: string, targetName?: string) => {
-    setErrorMsg('');
-    setSuccessMsg(`Conectando à conta Google: ${targetEmail}...`);
-    
-    // Check if this exact user already exists in storage
-    const existing = users.find((u) => u.email.toLowerCase() === targetEmail.toLowerCase());
-    if (existing) {
-      loginAs(existing);
-      setSuccessMsg(`Conectado com sucesso como "${existing.name}"!`);
-      setTimeout(() => onClose(), 800);
-      return;
-    }
-
-    // Create a new separate user profile for this Google Account
-    const newGoogleUser: User = {
-      id: `usr_google_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      name: targetName || targetEmail.split('@')[0],
-      email: targetEmail,
-      phone: '',
-      storeName: `${targetName || targetEmail.split('@')[0]} - BRICK`,
-      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetEmail)}`,
-      createdAt: new Date().toISOString(),
-    };
-
-    loginAs(newGoogleUser);
-    setSuccessMsg(`Conta criada para ${targetEmail}! Banco de dados isolado e pronto.`);
-    setTimeout(() => onClose(), 800);
-  };
-
-  const handleGoogleLogin = async () => {
-    setErrorMsg('');
-    setSuccessMsg('');
-    setIsSubmitting(true);
-    try {
-      const user = await loginWithGoogle();
-      setSuccessMsg(`Bem-vindo, ${user.name}! Conta Google conectada com sucesso.`);
-      setTimeout(() => onClose(), 1000);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Falha ao abrir seletor de contas do Google.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  // Check if an email already exists in the system
+  const isEmailAlreadyRegistered = (checkEmail: string) => {
+    if (!checkEmail || !checkEmail.includes('@')) return false;
+    const normalized = checkEmail.trim().toLowerCase();
+    return users.some((u) => u.email.trim().toLowerCase() === normalized);
   };
 
   const handleCloudLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setErrorMsg('Por favor, informe seu e-mail e senha.');
+    if (!email.trim() || !password) {
+      setErrorMsg('Por favor, informe seu e-mail e sua senha.');
       return;
     }
     setErrorMsg('');
     setSuccessMsg('');
     setIsSubmitting(true);
     try {
-      const ok = await login(email, password);
+      const ok = await login(email.trim(), password);
       if (ok) {
         setSuccessMsg('Conectado com sucesso! Sincronização em tempo real ativada.');
-        setTimeout(() => onClose(), 900);
+        setTimeout(() => onClose(), 800);
       } else {
-        setErrorMsg('E-mail ou senha incorretos.');
+        setErrorMsg('E-mail ou senha incorretos. Verifique suas credenciais.');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro ao conectar à conta.');
@@ -140,12 +102,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const handleCloudRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !password) {
-      setErrorMsg('Por favor, preencha nome, e-mail e crie uma senha.');
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+    const cleanStore = storeName.trim();
+
+    if (!cleanName) {
+      setErrorMsg('Por favor, informe o seu Nome Completo.');
+      return;
+    }
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMsg('Por favor, informe um endereço de e-mail válido.');
+      return;
+    }
+    if (!password) {
+      setErrorMsg('Por favor, crie uma senha de acesso.');
       return;
     }
     if (password.length < 6) {
-      setErrorMsg('A senha precisa ter no mínimo 6 caracteres.');
+      setErrorMsg('A senha precisa ter no mínimo 6 caracteres para garantir a segurança.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMsg('As senhas digitadas não coincidem. Verifique a confirmação de senha.');
+      return;
+    }
+
+    // Duplicate account prevention check
+    if (isEmailAlreadyRegistered(cleanEmail)) {
+      setErrorMsg('Este e-mail já possui uma conta cadastrada no sistema. Por favor, acesse a aba "Entrar" ou utilize a "Recuperação de Senha".');
       return;
     }
 
@@ -154,14 +138,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
     try {
       const newUser = await register(
-        name.trim(),
-        email.trim(),
+        cleanName,
+        cleanEmail,
         password,
-        storeName.trim() || undefined,
+        cleanStore || undefined,
         undefined,
         copyDemoData
       );
-      setSuccessMsg(`Conta "${newUser.name}" criada com sucesso! Seu estoque independente está pronto.`);
+      setSuccessMsg(`Conta "${newUser.name}" criada com sucesso! Seu banco de dados independente e isolado está ativo.`);
       setTimeout(() => onClose(), 1000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro ao criar conta no banco de dados.');
@@ -170,21 +154,59 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleQuickTestAccount = async () => {
+  const handleRequestPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = (recoveryEmail || email).trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMsg('Por favor, digite o e-mail cadastrado para enviarmos as instruções.');
+      return;
+    }
+
     setErrorMsg('');
     setSuccessMsg('');
     setIsSubmitting(true);
     try {
-      const randomSuffix = Math.floor(100 + Math.random() * 900);
-      const testName = `Usuário ${randomSuffix}`;
-      const testEmail = `usuario${randomSuffix}@autobrick.app`;
-      const testPass = '123456';
-      
-      const newUser = await register(testName, testEmail, testPass, `Loja BRICK ${randomSuffix}`, undefined, false);
-      setSuccessMsg(`Conta independente "${newUser.name}" gerada com sucesso!`);
-      setTimeout(() => onClose(), 1000);
+      const res = await requestPasswordReset(cleanEmail);
+      setRecoveryEmail(cleanEmail);
+      if (res.verificationCode) {
+        setSentCodeHint(res.verificationCode);
+      }
+      setRecoveryStep('verify');
+      setSuccessMsg(`Código e instruções de recuperação enviados com sucesso para ${cleanEmail}! Verifique sua caixa de entrada e spam.`);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Erro ao gerar conta.');
+      setErrorMsg(err.message || 'Erro ao processar solicitação de recuperação.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = recoveryEmail.trim().toLowerCase();
+    const cleanCode = recoveryCode.trim();
+
+    if (!cleanCode) {
+      setErrorMsg('Por favor, informe o código de 6 dígitos que você recebeu.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setErrorMsg('A nova senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setErrorMsg('A confirmação da nova senha não confere. Digite a mesma senha nos dois campos.');
+      return;
+    }
+
+    setErrorMsg('');
+    setSuccessMsg('');
+    setIsSubmitting(true);
+    try {
+      await resetPasswordWithCode(cleanEmail, cleanCode, newPassword);
+      setSuccessMsg('Senha redefinida com sucesso! Você já está conectado à sua conta.');
+      setTimeout(() => onClose(), 1200);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Código de verificação incorreto ou expirado. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -202,57 +224,54 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[88vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         
-        {/* Modal Header (Fixed at top) */}
-        <div className="px-5 sm:px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
+        {/* Header */}
+        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
-              <Cloud className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+              <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-white">
-                  Acesso & Sincronização em Nuvem
-                </h2>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  cloudSyncStatus === 'online'
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                }`}>
-                  {cloudSyncStatus === 'online' ? '🟢 Nuvem Ativa' : '🟡 Modo Local'}
-                </span>
-              </div>
+              <h2 className="text-base font-black text-white flex items-center gap-2">
+                {mode === 'cloud_login' && 'Entrar na Conta'}
+                {mode === 'cloud_register' && 'Cadastrar Nova Conta'}
+                {mode === 'forgot_password' && 'Recuperação de Senha'}
+                {mode === 'demo_profiles' && 'Perfis e Contas'}
+              </h2>
               <p className="text-xs text-slate-400">
-                Acesse do celular e computador com contas 100% isoladas.
+                {mode === 'cloud_login' && 'Acesse seus dados e estoque com sincronização em nuvem'}
+                {mode === 'cloud_register' && 'Crie sua conta exclusiva para ter banco de dados isolado'}
+                {mode === 'forgot_password' && 'Receba um código no seu e-mail para redefinir sua senha'}
+                {mode === 'demo_profiles' && 'Selecione ou alterne entre contas cadastradas'}
               </p>
             </div>
           </div>
-
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tab Selection (Fixed) */}
-        <div className="px-4 sm:px-6 py-2.5 bg-slate-950/50 border-b border-slate-800 flex space-x-2 shrink-0 overflow-x-auto">
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-slate-800 bg-slate-950/60 p-1.5 gap-1 shrink-0 overflow-x-auto">
           <button
             onClick={() => {
               setMode('cloud_login');
               setErrorMsg('');
               setSuccessMsg('');
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               mode === 'cloud_login'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'text-slate-400 hover:text-white bg-slate-800/40'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            Entrar na Conta
+            <Lock className="w-3.5 h-3.5" />
+            <span>Entrar</span>
           </button>
 
           <button
@@ -261,13 +280,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               setErrorMsg('');
               setSuccessMsg('');
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               mode === 'cloud_register'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'text-slate-400 hover:text-white bg-slate-800/40'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            Criar Nova Conta
+            <Plus className="w-3.5 h-3.5" />
+            <span>Criar Conta</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setMode('forgot_password');
+              setRecoveryStep('request');
+              setErrorMsg('');
+              setSuccessMsg('');
+              if (email) setRecoveryEmail(email);
+            }}
+            className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              mode === 'forgot_password'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Recuperar Senha</span>
           </button>
 
           <button
@@ -276,120 +314,55 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               setErrorMsg('');
               setSuccessMsg('');
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               mode === 'demo_profiles'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'text-slate-400 hover:text-white bg-slate-800/40'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            Trocar Perfil
+            <Users className="w-3.5 h-3.5" />
+            <span>Perfis ({users.length})</span>
           </button>
         </div>
 
-        {/* Scrollable Modal Body */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4 pb-8">
-          {errorMsg && (
-            <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 space-y-2">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <div className="flex-1 font-semibold leading-relaxed">
-                  {errorMsg}
-                </div>
-              </div>
-
-              {isUnauthorizedDomain && (
-                <div className="mt-2 pt-2.5 border-t border-rose-500/20 bg-slate-950/80 p-3 rounded-xl space-y-2.5 text-slate-200">
-                  <div className="text-[11px] text-amber-300 font-bold flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5" />
-                    Como acessar imediatamente com sua conta Google:
-                  </div>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      value={googleEmailInput}
-                      onChange={(e) => setGoogleEmailInput(e.target.value)}
-                      placeholder="seu.email.google@gmail.com"
-                      className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleInstantGoogleEmailLogin(googleEmailInput)}
-                      className="py-1.5 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow shrink-0 cursor-pointer transition-all"
-                    >
-                      Acessar Conta
-                    </button>
-                  </div>
-
-                  <div className="text-[10px] text-slate-400 leading-normal pt-1">
-                    Para liberar o popup nativo do Google neste endereço, adicione em <strong>Firebase Console &gt; Auth &gt; Authorized Domains</strong>:
-                  </div>
-
-                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-lg">
-                    <code className="text-[10px] text-amber-400 flex-1 font-mono break-all select-all">
-                      {currentHostname || 'ais-dev-...run.app'}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={handleCopyDomain}
-                      className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded text-[10px] font-bold flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
-                    >
-                      {domainCopied ? (
-                        <>
-                          <Check className="w-3 h-3 text-emerald-400" /> Copiado!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3 text-slate-400" /> Copiar
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {/* Current Connected User Badge */}
+        {/* Scrollable Modal Content */}
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+          
+          {/* Current Active User Banner */}
           {currentUser && (
-            <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs">
-                  {currentUser.name.charAt(0)}
+            <div className="bg-slate-950/80 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm shrink-0 shadow-md">
+                  {currentUser.name.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                    {currentUser.name}
-                    <span className="text-[10px] px-1.5 py-0.2 bg-slate-800 text-slate-300 rounded font-normal">
-                      {currentUser.storeName || 'Revenda'}
-                    </span>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                    <span>Conta Ativa no Momento</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
                   </div>
-                  <div className="text-[11px] text-slate-400">{currentUser.email}</div>
+                  <div className="font-black text-sm text-white truncate">{currentUser.name}</div>
+                  <div className="text-xs text-slate-400 truncate">{currentUser.email}</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
+                  type="button"
                   onClick={handleManualSync}
-                  disabled={isSubmitting || isCloudSyncing}
-                  title="Sincronizar dados com a nuvem agora"
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition-colors text-xs flex items-center gap-1 font-bold"
+                  disabled={isCloudSyncing}
+                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  title="Sincronizar dados agora"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">Sincronizar</span>
+                  <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-amber-400' : ''}`} />
                 </button>
-
                 <button
-                  onClick={logout}
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    setSuccessMsg('Sessão encerrada com sucesso.');
+                  }}
+                  className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                   title="Desconectar"
-                  className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -397,248 +370,82 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* MODE 1: CLOUD LOGIN */}
-          {mode === 'cloud_login' && (
-            <div className="space-y-4">
-              {/* Google Account Selector / Login with Google */}
-              <div className="space-y-2.5 bg-slate-950/60 border border-slate-800 p-3.5 rounded-2xl">
-                <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                  <span>Escolha sua Conta do Google:</span>
-                  <span className="text-[10px] text-amber-400 font-semibold">Seletor Oficial</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={isSubmitting}
-                  className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 border border-slate-200"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-                    />
-                  </svg>
-                  <span>Continuar com o Google (Escolher Conta)</span>
-                </button>
-
-                {/* Direct Google Account Connector */}
-                <div className="pt-2 border-t border-slate-800/80">
-                  <div className="text-[11px] text-slate-400 mb-1.5">Ou digite seu e-mail do Google para acesso direto:</div>
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      value={googleEmailInput}
-                      onChange={(e) => setGoogleEmailInput(e.target.value)}
-                      placeholder="exemplo@gmail.com"
-                      className="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleInstantGoogleEmailLogin(googleEmailInput)}
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-slate-600 transition-all cursor-pointer shrink-0"
-                    >
-                      Acessar
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 my-2">
-                <div className="h-px bg-slate-800 flex-1" />
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ou acesse com e-mail e senha</span>
-                <div className="h-px bg-slate-800 flex-1" />
-              </div>
-
-              <form onSubmit={handleCloudLogin} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    E-mail da sua Conta *
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      required
-                      placeholder="seu.email@exemplo.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Senha *
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="password"
-                      required
-                      placeholder="Sua senha secreta"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" /> Conectando...
-                    </>
-                  ) : (
-                    <>
-                      <Cloud className="w-4 h-4" /> Entrar na Conta & Sincronizar
-                    </>
-                  )}
-                </button>
-              </form>
+          {/* Feedback Messages */}
+          {errorMsg && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+              <div className="flex-1 leading-relaxed">{errorMsg}</div>
             </div>
           )}
 
-          {/* MODE 2: CLOUD REGISTER */}
-          {mode === 'cloud_register' && (
+          {successMsg && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-start gap-2.5">
+              <CheckCircle className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+              <div className="flex-1 leading-relaxed">{successMsg}</div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* MODE 1: ENTRAR NA CONTA (LOGIN) */}
+          {/* ========================================================= */}
+          {mode === 'cloud_login' && (
             <div className="space-y-4">
-              {/* Google 1-Click Register */}
-              <div className="bg-slate-950/60 border border-slate-800 p-3.5 rounded-2xl space-y-2.5">
-                <div className="text-xs font-bold text-slate-300">
-                  Cadastrar com sua Conta do Google:
-                </div>
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={isSubmitting}
-                  className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 border border-slate-200"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-                    />
-                  </svg>
-                  <span>Cadastrar com o Google (Escolher Conta)</span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 my-1">
-                <div className="h-px bg-slate-800 flex-1" />
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ou crie com formulário completo</span>
-                <div className="h-px bg-slate-800 flex-1" />
-              </div>
-
-              <form onSubmit={handleCloudRegister} className="space-y-3">
+              <form onSubmit={handleCloudLogin} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Seu Nome Completo *
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Seu E-mail Cadastrado *
                   </label>
                   <div className="relative">
-                    <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Carlos Silva"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Nome da Loja / Perfil (Opcional)
-                  </label>
-                  <div className="relative">
-                    <Building className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Ex: Minha Loja & BRICK"
-                      value={storeName}
-                      onChange={(e) => setStoreName(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Seu E-mail *
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="email"
                       required
                       placeholder="seu.email@exemplo.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Crie uma Senha (Mínimo 6 caracteres) *
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-300">
+                      Sua Senha *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('forgot_password');
+                        setRecoveryStep('request');
+                        setRecoveryEmail(email);
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className="text-[11px] text-amber-400 hover:text-amber-300 font-semibold cursor-pointer underline underline-offset-2"
+                    >
+                      Esqueceu sua senha?
+                    </button>
+                  </div>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer p-1"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
-
-                {/* Option to seed sample items or start clean */}
-                <label className="flex items-start gap-2 p-2.5 bg-slate-950/70 border border-slate-800 rounded-xl cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={copyDemoData}
-                    onChange={(e) => setCopyDemoData(e.target.checked)}
-                    className="mt-0.5 rounded border-slate-700 text-amber-500 focus:ring-amber-400"
-                  />
-                  <div className="text-[11px] text-slate-300 leading-tight">
-                    <strong className="text-amber-400 block">Iniciar com produtos e clientes de teste</strong>
-                    Copiar exemplos de estoque e clientes. Se desmarcado, a conta inicia 100% limpa.
-                  </div>
-                </label>
 
                 <div className="pt-2">
                   <button
@@ -648,37 +455,418 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   >
                     {isSubmitting ? (
                       <>
-                        <RefreshCw className="w-4 h-4 animate-spin" /> Criando Conta & Ativando Banco...
+                        <RefreshCw className="w-4 h-4 animate-spin" /> Conectando à Conta...
                       </>
                     ) : (
                       <>
-                        <Plus className="w-4 h-4 stroke-[3]" /> Criar Conta & Ativar Banco de Dados
+                        <Lock className="w-4 h-4" /> Entrar na Minha Conta
                       </>
                     )}
                   </button>
                 </div>
               </form>
 
-              {/* Quick test generator button */}
-              <div className="pt-2 border-t border-slate-800 flex justify-center pb-2">
+              {/* Callout to register */}
+              <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-2xl text-center space-y-2">
+                <div className="text-xs text-slate-400">
+                  Ainda não possui uma conta cadastrada no Autobrick?
+                </div>
                 <button
                   type="button"
-                  onClick={handleQuickTestAccount}
-                  disabled={isSubmitting}
-                  className="text-[11px] text-slate-400 hover:text-amber-400 underline underline-offset-4 cursor-pointer transition-colors"
+                  onClick={() => {
+                    setMode('cloud_register');
+                    setErrorMsg('');
+                    setSuccessMsg('');
+                  }}
+                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-700"
                 >
-                  ⚡ Deseja criar uma conta rápida com 1 clique? Clique aqui
+                  <Plus className="w-4 h-4 text-amber-400" /> Criar Conta Gratuita e Independente
                 </button>
               </div>
             </div>
           )}
 
-          {/* MODE 3: DEMO PROFILES */}
+          {/* ========================================================= */}
+          {/* MODE 2: CRIAR NOVA CONTA (CADASTRO COMPLETO COM VALIDAÇÃO) */}
+          {/* ========================================================= */}
+          {mode === 'cloud_register' && (
+            <div className="space-y-4">
+              <form onSubmit={handleCloudRegister} className="space-y-3">
+                {/* Nome Completo */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Seu Nome Completo *
+                  </label>
+                  <div className="relative">
+                    <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: Carlos Oliveira"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Nome da Empresa / Loja */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Nome da Empresa / Loja ou Negócio (Opcional)
+                  </label>
+                  <div className="relative">
+                    <Building className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Ex: Auto Brick Multimarcas"
+                      value={storeName}
+                      onChange={(e) => setStoreName(e.target.value)}
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* E-mail */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-300">
+                      Seu E-mail *
+                    </label>
+                    {email && isEmailAlreadyRegistered(email) && (
+                      <span className="text-[10px] text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                        E-mail já cadastrado
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="seu.email@exemplo.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-colors ${
+                        email && isEmailAlreadyRegistered(email)
+                          ? 'border-rose-500 focus:border-rose-400'
+                          : 'border-slate-700 focus:border-amber-500'
+                      }`}
+                    />
+                  </div>
+                  {email && isEmailAlreadyRegistered(email) && (
+                    <p className="text-[11px] text-rose-400 mt-1">
+                      Este e-mail já possui uma conta cadastrada. Use a aba "Entrar" ou recupere sua senha.
+                    </p>
+                  )}
+                </div>
+
+                {/* Senha */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Crie uma Senha Segura (Mínimo 6 caracteres) *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer p-1"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirmar Senha */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Confirme a sua Senha *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      placeholder="Repita a mesma senha"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={`w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-colors ${
+                        confirmPassword && password !== confirmPassword
+                          ? 'border-rose-500 focus:border-rose-400'
+                          : 'border-slate-700 focus:border-amber-500'
+                      }`}
+                    />
+                  </div>
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="text-[11px] text-rose-400 mt-1">
+                      As senhas não conferem.
+                    </p>
+                  )}
+                </div>
+
+                {/* Iniciar com dados de teste */}
+                <label className="flex items-start gap-2.5 p-3 bg-slate-950/70 border border-slate-800 rounded-xl cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={copyDemoData}
+                    onChange={(e) => setCopyDemoData(e.target.checked)}
+                    className="mt-0.5 rounded border-slate-700 text-amber-500 focus:ring-amber-400"
+                  />
+                  <div className="text-[11px] text-slate-300 leading-tight">
+                    <strong className="text-amber-400 block mb-0.5">Iniciar com exemplos de estoque e clientes</strong>
+                    Se marcado, copia modelos de teste. Se desmarcado, a conta inicia 100% limpa.
+                  </div>
+                </label>
+
+                {/* Submit button */}
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || (Boolean(email) && isEmailAlreadyRegistered(email))}
+                    className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" /> Criando Conta & Isolando Banco...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 stroke-[3]" /> Cadastrar Conta no Autobrick
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {/* Back to login */}
+              <div className="text-center pt-1 pb-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('cloud_login');
+                    setErrorMsg('');
+                    setSuccessMsg('');
+                  }}
+                  className="text-xs text-slate-400 hover:text-amber-400 font-medium cursor-pointer transition-colors"
+                >
+                  Já tem uma conta cadastrada? <span className="text-amber-400 font-bold underline">Entrar agora</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* MODE 3: RECUPERAÇÃO DE SENHA */}
+          {/* ========================================================= */}
+          {mode === 'forgot_password' && (
+            <div className="space-y-4">
+              {recoveryStep === 'request' ? (
+                /* STEP 1: SOLICITAR CÓDIGO */
+                <form onSubmit={handleRequestPasswordReset} className="space-y-3.5">
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl space-y-1.5">
+                    <div className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                      <KeyRound className="w-4 h-4" />
+                      <span>Instruções de Recuperação</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Digite o e-mail que você cadastrou no sistema. Enviaremos um <strong>código de verificação de 6 dígitos</strong> e as instruções para você redefinir sua senha com segurança.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      E-mail Cadastrado *
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        required
+                        placeholder="seu.email@exemplo.com"
+                        value={recoveryEmail}
+                        onChange={(e) => setRecoveryEmail(e.target.value)}
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" /> Enviando Código de Recuperação...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" /> Enviar Código para meu E-mail
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('cloud_login');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className="text-xs text-slate-400 hover:text-white flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" /> Voltar para a tela de Login
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* STEP 2: VERIFICAR CÓDIGO E DEFINIR NOVA SENHA */
+                <form onSubmit={handleResetPassword} className="space-y-3.5">
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 p-3.5 rounded-2xl space-y-2">
+                    <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Código de Recuperação Enviado!</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Enviamos as instruções e o código de 6 dígitos para o e-mail: <strong className="text-white">{recoveryEmail}</strong>.
+                    </p>
+                    {sentCodeHint && (
+                      <div className="bg-slate-950/80 p-2 rounded-xl border border-emerald-500/40 flex items-center justify-between">
+                        <span className="text-[11px] text-slate-400">Código de Verificação:</span>
+                        <span className="font-mono text-sm font-black text-amber-400 tracking-widest">{sentCodeHint}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Código de 6 Dígitos */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      Código de Verificação de 6 Dígitos *
+                    </label>
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        placeholder="Ex: 742918"
+                        value={recoveryCode}
+                        onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, ''))}
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono tracking-widest text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Nova Senha */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      Crie sua Nova Senha (Mínimo 6 caracteres) *
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer p-1"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirmar Nova Senha */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      Confirme a Nova Senha *
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        placeholder="Repita a nova senha"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" /> Atualizando Senha...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4 stroke-[3]" /> Redefinir Senha e Entrar na Conta
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setRecoveryStep('request')}
+                      className="text-xs text-slate-400 hover:text-amber-400 cursor-pointer"
+                    >
+                      Reenviar para outro e-mail
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('cloud_login');
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
+                      className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      Voltar ao Login
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* MODE 4: PERFIS CADASTRADOS */}
+          {/* ========================================================= */}
           {mode === 'demo_profiles' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Perfis Cadastrados:
+                  Contas Registradas no Sistema:
                 </span>
                 <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -710,22 +898,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                               : 'bg-slate-800 text-slate-300'
                           }`}
                         >
-                          {user.name.charAt(0)}
+                          {user.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <div className="font-bold text-xs text-white">{user.name}</div>
                           <div className="text-[11px] text-slate-400">
-                            {user.storeName || 'Revenda Independente'} • {user.email}
+                            {user.storeName || 'Loja / Negócios'} • {user.email}
                           </div>
                         </div>
                       </div>
 
                       {isCurrent ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950 shadow-sm">
                           Conta Ativa
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400 group-hover:text-white">
+                        <span className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1">
                           Acessar &rarr;
                         </span>
                       )}
@@ -733,8 +921,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   );
                 })}
               </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('cloud_register');
+                    setErrorMsg('');
+                    setSuccessMsg('');
+                  }}
+                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-700"
+                >
+                  <Plus className="w-4 h-4 text-amber-400" /> Cadastrar Outra Conta
+                </button>
+              </div>
             </div>
           )}
+
         </div>
       </div>
     </div>

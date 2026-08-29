@@ -3,6 +3,7 @@ import { BrickItem, User, Client } from '../types';
 const STORAGE_USERS_KEY = 'autobrick_users_v2';
 const STORAGE_ITEMS_KEY = 'autobrick_items_v2';
 const STORAGE_CLIENTS_KEY = 'autobrick_clients_v1';
+const STORAGE_CREDENTIALS_KEY = 'autobrick_credentials_v1';
 
 // Seed Initial Demo Clients with Wishlists
 const INITIAL_CLIENTS: Client[] = [
@@ -400,6 +401,52 @@ export const storageService = {
       users.push(user);
     }
     localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+  },
+
+  // Check if an email is already registered (case-insensitive)
+  checkEmailExists(email: string): boolean {
+    if (!email) return false;
+    const normalized = email.trim().toLowerCase();
+    const users = this.getUsers();
+    return users.some((u) => u.email.trim().toLowerCase() === normalized);
+  },
+
+  // Credentials Management
+  getCredentials(): Record<string, string> {
+    try {
+      const data = localStorage.getItem(STORAGE_CREDENTIALS_KEY);
+      if (!data) return {};
+      return JSON.parse(data);
+    } catch {
+      return {};
+    }
+  },
+
+  saveCredentials(email: string, password: string): void {
+    if (!email || !password) return;
+    const creds = this.getCredentials();
+    creds[email.trim().toLowerCase()] = password;
+    localStorage.setItem(STORAGE_CREDENTIALS_KEY, JSON.stringify(creds));
+  },
+
+  verifyCredentials(email: string, password?: string): boolean {
+    if (!email) return false;
+    const normalized = email.trim().toLowerCase();
+    const creds = this.getCredentials();
+    const storedPass = creds[normalized];
+    if (storedPass) {
+      return storedPass === password;
+    }
+    // If no explicit credential stored for legacy/demo account, accept if user exists
+    const users = this.getUsers();
+    return users.some((u) => u.email.trim().toLowerCase() === normalized);
+  },
+
+  updateUserPassword(email: string, newPassword: string): boolean {
+    if (!email || !newPassword) return false;
+    const normalized = email.trim().toLowerCase();
+    this.saveCredentials(normalized, newPassword);
+    return true;
   },
 
   // Items / Products Management with Strict RLS (Row-Level Security)
