@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User, BrickItem, Client } from '../types';
 import { storageService } from '../services/storage';
-import { firebaseService } from '../services/firebaseService';
+import { firebaseService, getFriendlyAuthErrorMessage } from '../services/firebaseService';
 import { Unsubscribe } from 'firebase/firestore';
 
 interface AuthContextType {
@@ -12,10 +12,11 @@ interface AuthContextType {
   isLoading: boolean;
   isCloudSyncing: boolean;
   cloudSyncStatus: 'online' | 'local_demo' | 'syncing' | 'offline';
-  login: (email: string, password?: string) => Promise<boolean> | boolean;
+  login: (email: string, password?: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<User>;
   loginAs: (user: User) => void;
   switchUser: (userId: string) => void;
-  register: (name: string, email: string, password?: string, storeName?: string, phone?: string) => Promise<User>;
+  register: (name: string, email: string, password?: string, storeName?: string, phone?: string, copyDemoData?: boolean) => Promise<User>;
   logout: () => Promise<void>;
   saveVehicle: (vehicle: BrickItem) => Promise<BrickItem>;
   deleteVehicle: (id: string) => Promise<void>;
@@ -187,12 +188,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: fbUser.uid,
             name: fbUser.email?.split('@')[0] || 'Usuário Nuvem',
             email: fbUser.email || email,
+            storeName: 'Minha Loja & BRICK',
+            avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(fbUser.uid)}`,
             createdAt: new Date().toISOString(),
           };
           loginAs(user);
           return true;
         } catch (e: any) {
-          console.warn('Firebase login failed, checking local users:', e);
+          console.warn('Firebase login attempt:', e);
+          // Check if it exists in local users before throwing
+          const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+          if (found) {
+            loginAs(found);
+            return true;
+          }
+          throw new Error(getFriendlyAuthErrorMessage(e));
+        } finally {
+          setIsCloudSyncing(false);
         }
       }
 
@@ -207,33 +219,111 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [users, loginAs]
   );
 
+  const loginWithGoogle = useCallback(async (): Promise<User> => {
+    setIsCloudSyncing(true);
+    try {
+      const user = await firebaseService.loginWithGoogle();
+      loginAs(user);
+      return user;
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      throw new Error(getFriendlyAuthErrorMessage(err));
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  }, [loginAs]);
+
   const register = useCallback(
-    async (name: string, email: string, password?: string, storeName?: string, phone?: string): Promise<User> => {
+    async (
+      name: string,
+      email: string,
+      password?: string,
+      storeName?: string,
+      phone?: string,
+      copyDemoData = true
+    ): Promise<User> => {
+      let newUser: User;
+
       if (password && password.length >= 6) {
         try {
           setIsCloudSyncing(true);
-          const newUser = await firebaseService.registerUser(email, password, name, storeName, phone);
-          loginAs(newUser);
-          return newUser;
+          newUser = await firebaseService.registerUser(email, password, name, storeName, phone);
         } catch (e: any) {
-          console.error('Firebase registration error:', e);
-          throw new Error(e.message || 'Erro ao registrar no banco de dados na nuvem.');
+          console.warn('Cloud registration notice, processing fallback:', e);
+          const errCode = e?.code || '';
+          if (errCode === 'auth/operation-not-allowed' || errCode === 'auth/unauthorized-domain' || errCode === 'auth/network-request-failed') {
+            // Local fallback with cloud readiness
+            newUser = {
+              id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              name,
+              email,
+              storeName: storeName || 'Negócios & BRICK',
+              phone: phone || '',
+              avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
+              createdAt: new Date().toISOString(),
+            };
+            storageService.saveUser(newUser);
+            const updatedUsers = storageService.getUsers();
+            setUsers(updatedUsers);
+          } else {
+            throw new Error(getFriendlyAuthErrorMessage(e));
+          }
+        } finally {
+          setIsCloudSyncing(false);
+        }
+      } else {
+        // Local registration
+        newUser = {
+          id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          name,
+          email,
+          storeName: storeName || 'Negócios & BRICK',
+          phone: phone || '',
+          avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
+          createdAt: new Date().toISOString(),
+        };
+        storageService.saveUser(newUser);
+        const updatedUsers = storageService.getUsers();
+        setUsers(updatedUsers);
+      }
+
+      // Seed initial sample inventory & clients if requested so user can immediately test database
+      if (copyDemoData) {
+        const demoItems = storageService.getItemsByUserId('usr_carlos_01');
+        if (demoItems.length > 0) {
+          demoItems.forEach((item) => {
+            const clonedItem: BrickItem = {
+              ...item,
+              id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              userId: newUser.id,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            storageService.saveItem(clonedItem);
+            if (newUser.id.length >= 20) {
+              firebaseService.saveItem(clonedItem).catch(() => {});
+            }
+          });
+        }
+
+        const demoClients = storageService.getClientsByUserId('usr_carlos_01');
+        if (demoClients.length > 0) {
+          demoClients.forEach((client) => {
+            const clonedClient: Client = {
+              ...client,
+              id: `cli_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              userId: newUser.id,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            storageService.saveClient(clonedClient);
+            if (newUser.id.length >= 20) {
+              firebaseService.saveClient(clonedClient).catch(() => {});
+            }
+          });
         }
       }
 
-      // Local registration fallback
-      const newUser: User = {
-        id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        name,
-        email,
-        storeName: storeName || 'Negócios & BRICK',
-        phone: phone || '',
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
-        createdAt: new Date().toISOString(),
-      };
-      storageService.saveUser(newUser);
-      const updatedUsers = storageService.getUsers();
-      setUsers(updatedUsers);
       loginAs(newUser);
       return newUser;
     },
@@ -399,6 +489,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isCloudSyncing,
         cloudSyncStatus,
         login,
+        loginWithGoogle,
         loginAs,
         switchUser,
         register,

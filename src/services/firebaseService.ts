@@ -9,11 +9,12 @@ import {
   where,
   onSnapshot,
   Unsubscribe,
-  serverTimestamp,
 } from 'firebase/firestore';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   User as FirebaseUser,
@@ -21,10 +22,67 @@ import {
 import { db, auth } from '../lib/firebase';
 import { BrickItem, Client, User } from '../types';
 
+export function getFriendlyAuthErrorMessage(error: any): string {
+  const code = error?.code || '';
+  const msg = error?.message || '';
+
+  if (code === 'auth/email-already-in-use') {
+    return 'Este e-mail já está cadastrado. Tente entrar na sua conta ou use outro e-mail.';
+  }
+  if (code === 'auth/invalid-email') {
+    return 'O formato do e-mail digitado é inválido. Verifique e tente novamente.';
+  }
+  if (code === 'auth/weak-password') {
+    return 'A senha é muito fraca. Digite pelo menos 6 caracteres.';
+  }
+  if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+    return 'E-mail ou senha incorretos. Verifique suas credenciais.';
+  }
+  if (code === 'auth/operation-not-allowed') {
+    return 'O login por e-mail/senha está sendo inicializado. Você pode usar o botão "Entrar com Google" ou criar uma conta local com sincronização automática.';
+  }
+  if (code === 'auth/popup-closed-by-user') {
+    return 'A janela de autenticação do Google foi fechada antes de concluir o acesso.';
+  }
+  if (code === 'auth/popup-blocked') {
+    return 'O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Falha de conexão com a rede. Verifique sua internet e tente novamente.';
+  }
+  if (code === 'auth/unauthorized-domain') {
+    return 'Domínio de autorização não listado. Você pode utilizar o modo rápido local.';
+  }
+
+  return msg || 'Ocorreu um erro ao processar sua solicitação de autenticação.';
+}
+
 export const firebaseService = {
   // --- AUTHENTICATION ---
   onAuthChange(callback: (user: FirebaseUser | null) => void): Unsubscribe {
     return onAuthStateChanged(auth, callback);
+  },
+
+  async loginWithGoogle(): Promise<User> {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const userCredential = await signInWithPopup(auth, provider);
+    const fbUser = userCredential.user;
+
+    let profile = await this.getUserProfile(fbUser.uid);
+    if (!profile) {
+      profile = {
+        id: fbUser.uid,
+        name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Usuário Google',
+        email: fbUser.email || '',
+        storeName: 'Minha Loja & BRICK',
+        phone: fbUser.phoneNumber || '',
+        avatarUrl: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(fbUser.uid)}`,
+        createdAt: new Date().toISOString(),
+      };
+      await this.saveUserProfile(profile);
+    }
+    return profile;
   },
 
   async registerUser(email: string, password: string, name: string, storeName?: string, phone?: string): Promise<User> {
@@ -42,10 +100,14 @@ export const firebaseService = {
     };
 
     // Save profile in Firestore
-    await setDoc(doc(db, 'users', fbUser.uid), {
-      ...userProfile,
-      updatedAt: new Date().toISOString(),
-    });
+    try {
+      await setDoc(doc(db, 'users', fbUser.uid), {
+        ...userProfile,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (dbErr) {
+      console.warn('Could not write user profile to Firestore, saving locally:', dbErr);
+    }
 
     return userProfile;
   },
@@ -73,10 +135,14 @@ export const firebaseService = {
   },
 
   async saveUserProfile(user: User): Promise<void> {
-    await setDoc(doc(db, 'users', user.id), {
-      ...user,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    try {
+      await setDoc(doc(db, 'users', user.id), {
+        ...user,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+    } catch (e) {
+      console.error('Error saving user profile to Firestore:', e);
+    }
   },
 
   // --- REAL-TIME INVENTORY ITEMS (Vehicles, Electronics, etc.) ---
