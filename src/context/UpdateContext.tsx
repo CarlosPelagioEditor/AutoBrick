@@ -115,13 +115,16 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     setIsUpdating(true);
+    setIsModalOpen(false);
+    setIsUpdateAvailable(false);
+    setIsDefinitive(false);
     try {
-      await updateService.applyUpdateAndReload();
+      await updateService.applyUpdateAndReload(newVersionInfo);
     } catch (err) {
       console.error('Failed to apply update, forcing reload:', err);
       window.location.reload();
     }
-  }, []);
+  }, [newVersionInfo]);
 
   // Open modal manually (only if online or test)
   const openUpdateModal = useCallback(() => {

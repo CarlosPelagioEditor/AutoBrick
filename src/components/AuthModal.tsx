@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { User } from '../types';
 import {
-  User,
+  User as UserIcon,
   X,
   Lock,
   Mail,
@@ -44,13 +45,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
-  const [email, setEmail] = useState('RcarlinhosO13H@gmail.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [copyDemoData, setCopyDemoData] = useState(true);
+  const [copyDemoData, setCopyDemoData] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [domainCopied, setDomainCopied] = useState(false);
+  const [googleEmailInput, setGoogleEmailInput] = useState('RcarlinhosO13H@gmail.com');
 
   if (!isOpen) return null;
 
@@ -68,20 +70,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleInstantCarlosLogin = () => {
+  const handleInstantGoogleEmailLogin = (targetEmail: string, targetName?: string) => {
     setErrorMsg('');
-    setSuccessMsg('Conectando como Carlos Henrique (RcarlinhosO13H@gmail.com)...');
-    const carlos = users.find((u) => u.email === 'RcarlinhosO13H@gmail.com') || {
-      id: 'usr_carlos_brick_01',
-      name: 'Carlos Henrique (Mestre do BRICK)',
-      email: 'RcarlinhosO13H@gmail.com',
-      phone: '(11) 98765-4321',
-      storeName: 'CH BRICK Multiuso & Negócios Rápidos',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    setSuccessMsg(`Conectando à conta Google: ${targetEmail}...`);
+    
+    // Check if this exact user already exists in storage
+    const existing = users.find((u) => u.email.toLowerCase() === targetEmail.toLowerCase());
+    if (existing) {
+      loginAs(existing);
+      setSuccessMsg(`Conectado com sucesso como "${existing.name}"!`);
+      setTimeout(() => onClose(), 800);
+      return;
+    }
+
+    // Create a new separate user profile for this Google Account
+    const newGoogleUser: User = {
+      id: `usr_google_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: targetName || targetEmail.split('@')[0],
+      email: targetEmail,
+      phone: '',
+      storeName: `${targetName || targetEmail.split('@')[0]} - BRICK`,
+      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetEmail)}`,
       createdAt: new Date().toISOString(),
     };
-    loginAs(carlos);
-    setSuccessMsg('Conectado com sucesso! Seus itens e estoque estão prontos.');
+
+    loginAs(newGoogleUser);
+    setSuccessMsg(`Conta criada para ${targetEmail}! Banco de dados isolado e pronto.`);
     setTimeout(() => onClose(), 800);
   };
 
@@ -91,10 +105,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
     try {
       const user = await loginWithGoogle();
-      setSuccessMsg(`Bem-vindo, ${user.name}! Conectado via Google com sincronização em tempo real.`);
+      setSuccessMsg(`Bem-vindo, ${user.name}! Conta Google conectada com sucesso.`);
       setTimeout(() => onClose(), 1000);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Falha ao autenticar com a conta Google.');
+      setErrorMsg(err.message || 'Falha ao abrir seletor de contas do Google.');
     } finally {
       setIsSubmitting(false);
     }
@@ -139,8 +153,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setSuccessMsg('');
     setIsSubmitting(true);
     try {
-      const newUser = await register(name.trim(), email.trim(), password, storeName.trim() || undefined, undefined, copyDemoData);
-      setSuccessMsg(`Conta "${newUser.name}" criada com sucesso! Banco de dados pronto para uso.`);
+      const newUser = await register(
+        name.trim(),
+        email.trim(),
+        password,
+        storeName.trim() || undefined,
+        undefined,
+        copyDemoData
+      );
+      setSuccessMsg(`Conta "${newUser.name}" criada com sucesso! Seu estoque independente está pronto.`);
       setTimeout(() => onClose(), 1000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro ao criar conta no banco de dados.');
@@ -155,15 +176,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
     try {
       const randomSuffix = Math.floor(100 + Math.random() * 900);
-      const testName = `Testador VIP ${randomSuffix}`;
-      const testEmail = `teste${randomSuffix}@autobrick.app`;
+      const testName = `Usuário ${randomSuffix}`;
+      const testEmail = `usuario${randomSuffix}@autobrick.app`;
       const testPass = '123456';
       
-      const newUser = await register(testName, testEmail, testPass, 'Loja Teste BRICK', undefined, true);
-      setSuccessMsg(`Conta de teste "${newUser.name}" gerada com sucesso com estoque e clientes de exemplo!`);
+      const newUser = await register(testName, testEmail, testPass, `Loja BRICK ${randomSuffix}`, undefined, false);
+      setSuccessMsg(`Conta independente "${newUser.name}" gerada com sucesso!`);
       setTimeout(() => onClose(), 1000);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Erro ao gerar conta de teste rápido.');
+      setErrorMsg(err.message || 'Erro ao gerar conta.');
     } finally {
       setIsSubmitting(false);
     }
@@ -181,13 +202,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-6 animate-in fade-in">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[96dvh] sm:max-h-[90vh]">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in">
+      <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[88vh]">
         
-        {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        {/* Modal Header (Fixed at top) */}
+        <div className="px-5 sm:px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
               <Cloud className="w-5 h-5" />
             </div>
             <div>
@@ -204,7 +225,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Acesse do celular e notebook simultaneamente com a mesma conta.
+                Acesse do celular e computador com contas 100% isoladas.
               </p>
             </div>
           </div>
@@ -217,21 +238,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Tab Selection */}
-        <div className="px-6 py-2.5 bg-slate-950/50 border-b border-slate-800 flex space-x-2">
+        {/* Tab Selection (Fixed) */}
+        <div className="px-4 sm:px-6 py-2.5 bg-slate-950/50 border-b border-slate-800 flex space-x-2 shrink-0 overflow-x-auto">
           <button
             onClick={() => {
               setMode('cloud_login');
               setErrorMsg('');
               setSuccessMsg('');
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               mode === 'cloud_login'
                 ? 'bg-amber-500 text-slate-950 shadow'
                 : 'text-slate-400 hover:text-white bg-slate-800/40'
             }`}
           >
-            Entrar na Nuvem
+            Entrar na Conta
           </button>
 
           <button
@@ -240,7 +261,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               setErrorMsg('');
               setSuccessMsg('');
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               mode === 'cloud_register'
                 ? 'bg-amber-500 text-slate-950 shadow'
                 : 'text-slate-400 hover:text-white bg-slate-800/40'
@@ -255,18 +276,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               setErrorMsg('');
               setSuccessMsg('');
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
               mode === 'demo_profiles'
                 ? 'bg-amber-500 text-slate-950 shadow'
                 : 'text-slate-400 hover:text-white bg-slate-800/40'
             }`}
           >
-            Perfis de Demonstração
+            Trocar Perfil
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 space-y-5">
+        {/* Scrollable Modal Body */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4 pb-8">
           {errorMsg && (
             <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 space-y-2">
               <div className="flex items-start gap-2">
@@ -280,20 +301,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <div className="mt-2 pt-2.5 border-t border-rose-500/20 bg-slate-950/80 p-3 rounded-xl space-y-2.5 text-slate-200">
                   <div className="text-[11px] text-amber-300 font-bold flex items-center gap-1.5">
                     <Zap className="w-3.5 h-3.5" />
-                    Como acessar imediatamente sem bloqueios:
+                    Como acessar imediatamente com sua conta Google:
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleInstantCarlosLogin}
-                    className="w-full py-2 px-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
-                  >
-                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                    <span>Entrar Direto como Carlos (RcarlinhosO13H@gmail.com)</span>
-                  </button>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={googleEmailInput}
+                      onChange={(e) => setGoogleEmailInput(e.target.value)}
+                      placeholder="seu.email.google@gmail.com"
+                      className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleInstantGoogleEmailLogin(googleEmailInput)}
+                      className="py-1.5 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow shrink-0 cursor-pointer transition-all"
+                    >
+                      Acessar Conta
+                    </button>
+                  </div>
 
                   <div className="text-[10px] text-slate-400 leading-normal pt-1">
-                    Para habilitar o pop-up do Google neste domínio, adicione o hostname abaixo em <strong>Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains</strong>:
+                    Para liberar o popup nativo do Google neste endereço, adicione em <strong>Firebase Console &gt; Auth &gt; Authorized Domains</strong>:
                   </div>
 
                   <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-lg">
@@ -323,8 +352,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
           {successMsg && (
             <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-emerald-400" />
-              {successMsg}
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{successMsg}</span>
             </div>
           )}
 
@@ -368,84 +397,72 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* Multi-Device Feature Explainer Banner */}
-          <div className="p-3.5 bg-gradient-to-r from-sky-950/40 to-slate-950 border border-sky-500/20 rounded-2xl flex items-center gap-3 text-xs text-sky-200">
-            <div className="flex items-center gap-1 shrink-0 text-sky-400">
-              <Smartphone className="w-4 h-4" />
-              <span>↔</span>
-              <Laptop className="w-4 h-4" />
-            </div>
-            <div>
-              <strong className="text-white block">Acesso Multi-Dispositivo Ativo:</strong>
-              Crie sua conta abaixo e faça login no seu celular e no notebook com o mesmo e-mail para ver seus produtos sincronizarem em tempo real.
-            </div>
-          </div>
-
           {/* MODE 1: CLOUD LOGIN */}
           {mode === 'cloud_login' && (
             <div className="space-y-4">
-              {/* Quick 1-Click Access for Carlos Henrique */}
-              <div className="p-3 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-slate-900 border border-amber-500/30 rounded-2xl flex items-center justify-between gap-3 shadow-sm">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
-                    CH
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-white flex items-center gap-1.5">
-                      Carlos Henrique
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-                        Admin
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-400">RcarlinhosO13H@gmail.com</div>
-                  </div>
+              {/* Google Account Selector / Login with Google */}
+              <div className="space-y-2.5 bg-slate-950/60 border border-slate-800 p-3.5 rounded-2xl">
+                <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                  <span>Escolha sua Conta do Google:</span>
+                  <span className="text-[10px] text-amber-400 font-semibold">Seletor Oficial</span>
                 </div>
 
                 <button
                   type="button"
-                  onClick={handleInstantCarlosLogin}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                  onClick={handleGoogleLogin}
+                  disabled={isSubmitting}
+                  className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 border border-slate-200"
                 >
-                  <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                  <span>Acessar</span>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                    />
+                  </svg>
+                  <span>Continuar com o Google (Escolher Conta)</span>
                 </button>
-              </div>
 
-              {/* Google 1-Click Login */}
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                disabled={isSubmitting}
-                className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 border border-slate-200"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-                  />
-                </svg>
-                <span>Entrar com Pop-up Google (Nuvem)</span>
-              </button>
+                {/* Direct Google Account Connector */}
+                <div className="pt-2 border-t border-slate-800/80">
+                  <div className="text-[11px] text-slate-400 mb-1.5">Ou digite seu e-mail do Google para acesso direto:</div>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={googleEmailInput}
+                      onChange={(e) => setGoogleEmailInput(e.target.value)}
+                      placeholder="exemplo@gmail.com"
+                      className="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleInstantGoogleEmailLogin(googleEmailInput)}
+                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-slate-600 transition-all cursor-pointer shrink-0"
+                    >
+                      Acessar
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               <div className="flex items-center gap-2 my-2">
                 <div className="h-px bg-slate-800 flex-1" />
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ou acesse com e-mail</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ou acesse com e-mail e senha</span>
                 <div className="h-px bg-slate-800 flex-1" />
               </div>
 
-              <form onSubmit={handleCloudLogin} className="space-y-3.5">
+              <form onSubmit={handleCloudLogin} className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">
                     E-mail da sua Conta *
@@ -491,7 +508,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     </>
                   ) : (
                     <>
-                      <Cloud className="w-4 h-4" /> Entrar & Sincronizar em Tempo Real
+                      <Cloud className="w-4 h-4" /> Entrar na Conta & Sincronizar
                     </>
                   )}
                 </button>
@@ -503,36 +520,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {mode === 'cloud_register' && (
             <div className="space-y-4">
               {/* Google 1-Click Register */}
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                disabled={isSubmitting}
-                className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 border border-slate-200"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-                  />
-                </svg>
-                <span>Cadastrar com o Google Instantaneamente</span>
-              </button>
+              <div className="bg-slate-950/60 border border-slate-800 p-3.5 rounded-2xl space-y-2.5">
+                <div className="text-xs font-bold text-slate-300">
+                  Cadastrar com sua Conta do Google:
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isSubmitting}
+                  className="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 border border-slate-200"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                    />
+                  </svg>
+                  <span>Cadastrar com o Google (Escolher Conta)</span>
+                </button>
+              </div>
 
-              <div className="flex items-center gap-2 my-2">
+              <div className="flex items-center gap-2 my-1">
                 <div className="h-px bg-slate-800 flex-1" />
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ou cadastro personalizado</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ou crie com formulário completo</span>
                 <div className="h-px bg-slate-800 flex-1" />
               </div>
 
@@ -542,7 +564,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     Seu Nome Completo *
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       required
@@ -556,13 +578,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Nome da Loja / Garagem / Perfil (Opcional)
+                    Nome da Loja / Perfil (Opcional)
                   </label>
                   <div className="relative">
                     <Building className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Ex: Carlos Games & BRICK"
+                      placeholder="Ex: Minha Loja & BRICK"
                       value={storeName}
                       onChange={(e) => setStoreName(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
@@ -604,7 +626,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   </div>
                 </div>
 
-                {/* Checkbox to seed sample items for testing */}
+                {/* Option to seed sample items or start clean */}
                 <label className="flex items-start gap-2 p-2.5 bg-slate-950/70 border border-slate-800 rounded-xl cursor-pointer">
                   <input
                     type="checkbox"
@@ -614,36 +636,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   />
                   <div className="text-[11px] text-slate-300 leading-tight">
                     <strong className="text-amber-400 block">Iniciar com produtos e clientes de teste</strong>
-                    Copiar exemplos de estoque e clientes para testar o banco de dados imediatamente.
+                    Copiar exemplos de estoque e clientes. Se desmarcado, a conta inicia 100% limpa.
                   </div>
                 </label>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" /> Criando Conta & Ativando Banco...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 stroke-[3]" /> Criar Conta & Ativar Banco de Dados
-                    </>
-                  )}
-                </button>
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" /> Criando Conta & Ativando Banco...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 stroke-[3]" /> Criar Conta & Ativar Banco de Dados
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
 
               {/* Quick test generator button */}
-              <div className="pt-2 border-t border-slate-800 flex justify-center">
+              <div className="pt-2 border-t border-slate-800 flex justify-center pb-2">
                 <button
                   type="button"
                   onClick={handleQuickTestAccount}
                   disabled={isSubmitting}
                   className="text-[11px] text-slate-400 hover:text-amber-400 underline underline-offset-4 cursor-pointer transition-colors"
                 >
-                  ⚡ Deseja criar uma conta de teste com 1 clique? Clique aqui
+                  ⚡ Deseja criar uma conta rápida com 1 clique? Clique aqui
                 </button>
               </div>
             </div>
@@ -654,7 +678,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Perfis Locais de Demonstração:
+                  Perfis Cadastrados:
                 </span>
                 <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />

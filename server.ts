@@ -303,10 +303,10 @@ async function startServer() {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  // Dynamic server build tracking
+  // Dynamic server build tracking (stable build ID to prevent false-positive reload loops)
   let currentServerVersion = "1.3.0";
-  let currentServerBuildId = "ab-build-" + Date.now();
-  let currentServerBuildTime = Date.now();
+  let currentServerBuildId = "ab-build-v1.3.0";
+  let currentServerBuildTime = 1756461400000;
   let currentReleaseNotes = "Melhorias de desempenho, banco de dados e novas ferramentas de negociação.";
 
   // App version check endpoint (polled by frontend)

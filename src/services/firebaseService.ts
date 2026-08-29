@@ -39,19 +39,22 @@ export function getFriendlyAuthErrorMessage(error: any): string {
     return 'E-mail ou senha incorretos. Verifique suas credenciais.';
   }
   if (code === 'auth/operation-not-allowed') {
-    return 'O login por e-mail/senha está sendo inicializado. Você pode usar o botão "Entrar com Google" ou criar uma conta local com sincronização automática.';
+    return 'O login por Google Pop-up requer ativação do provedor Google no Console do Firebase. Você pode utilizar a opção de Acesso Direto com seu e-mail do Google abaixo para criar sua conta isolada.';
   }
   if (code === 'auth/popup-closed-by-user') {
-    return 'A janela de autenticação do Google foi fechada antes de concluir o acesso.';
+    return 'A janela do Google foi fechada antes da escolha da conta. Clique novamente para selecionar sua conta.';
   }
   if (code === 'auth/popup-blocked') {
-    return 'O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.';
+    return 'O pop-up do Google foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site ou utilize o acesso por e-mail.';
   }
   if (code === 'auth/network-request-failed') {
     return 'Falha de conexão com a rede. Verifique sua internet e tente novamente.';
   }
   if (code === 'auth/unauthorized-domain') {
-    return 'Domínio de autorização não listado. Você pode utilizar o modo rápido local.';
+    return 'Domínio não listado no Firebase Authentication. Você pode conectar com seu e-mail Google diretamente para acessar sua conta independente e sincronizada.';
+  }
+  if (code === 'auth/cancelled-popup-request') {
+    return 'A solicitação de login anterior foi cancelada. Tente novamente.';
   }
 
   return msg || 'Ocorreu um erro ao processar sua solicitação de autenticação.';
@@ -65,6 +68,8 @@ export const firebaseService = {
 
   async loginWithGoogle(): Promise<User> {
     const provider = new GoogleAuthProvider();
+    provider.addScope('email');
+    provider.addScope('profile');
     provider.setCustomParameters({ prompt: 'select_account' });
     const userCredential = await signInWithPopup(auth, provider);
     const fbUser = userCredential.user;
@@ -75,7 +80,7 @@ export const firebaseService = {
         id: fbUser.uid,
         name: fbUser.displayName || fbUser.email?.split('@')[0] || 'Usuário Google',
         email: fbUser.email || '',
-        storeName: 'Minha Loja & BRICK',
+        storeName: `${fbUser.displayName || 'Minha Loja'} & BRICK`,
         phone: fbUser.phoneNumber || '',
         avatarUrl: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(fbUser.uid)}`,
         createdAt: new Date().toISOString(),

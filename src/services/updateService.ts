@@ -10,7 +10,9 @@ export interface AppVersionInfo {
 
 const INITIAL_BUILD_KEY = 'autobrick_initial_build_id';
 const INITIAL_VERSION_KEY = 'autobrick_initial_version';
+const INSTALLED_BUILD_KEY = 'autobrick_installed_build_id';
 const POSTPONED_UNTIL_KEY = 'autobrick_update_postponed_until';
+const JUST_UPDATED_KEY = 'autobrick_just_updated_time';
 
 export class UpdateService {
   private static instance: UpdateService;
@@ -19,11 +21,17 @@ export class UpdateService {
   private swRegistration: ServiceWorkerRegistration | null = null;
 
   private constructor() {
-    // Initialize current build ID from storage or set it on first boot
-    const storedBuild = sessionStorage.getItem(INITIAL_BUILD_KEY);
+    // Check if we just updated within the last 30 seconds
+    const justUpdatedTime = localStorage.getItem(JUST_UPDATED_KEY);
+    if (justUpdatedTime && Date.now() - parseInt(justUpdatedTime, 10) < 30000) {
+      // Clear flag after handling
+      localStorage.removeItem(JUST_UPDATED_KEY);
+    }
+
+    const installedBuild = localStorage.getItem(INSTALLED_BUILD_KEY) || sessionStorage.getItem(INITIAL_BUILD_KEY);
     const storedVersion = sessionStorage.getItem(INITIAL_VERSION_KEY);
-    if (storedBuild) {
-      this.currentBuildId = storedBuild;
+    if (installedBuild) {
+      this.currentBuildId = installedBuild;
     }
     if (storedVersion) {
       this.currentVersion = storedVersion;
@@ -121,8 +129,24 @@ export class UpdateService {
       return { hasUpdate: false, newVersion: null };
     }
 
-    // First time initializing the session? Record current build as baseline
+    // First time initializing? Record current server build as initial baseline
     if (!this.currentBuildId) {
+      this.currentBuildId = serverInfo.buildId;
+      this.currentVersion = serverInfo.version;
+      sessionStorage.setItem(INITIAL_BUILD_KEY, serverInfo.buildId);
+      sessionStorage.setItem(INITIAL_VERSION_KEY, serverInfo.version);
+      localStorage.setItem(INSTALLED_BUILD_KEY, serverInfo.buildId);
+      return { hasUpdate: false, newVersion: null };
+    }
+
+    // If server build matches current installed build or version, no update needed
+    if (serverInfo.buildId === this.currentBuildId && serverInfo.version === this.currentVersion) {
+      return { hasUpdate: false, newVersion: null };
+    }
+
+    // Check if user recently triggered an update to this target build
+    const installedBuild = localStorage.getItem(INSTALLED_BUILD_KEY);
+    if (installedBuild === serverInfo.buildId) {
       this.currentBuildId = serverInfo.buildId;
       this.currentVersion = serverInfo.version;
       sessionStorage.setItem(INITIAL_BUILD_KEY, serverInfo.buildId);
@@ -130,7 +154,7 @@ export class UpdateService {
       return { hasUpdate: false, newVersion: null };
     }
 
-    // If server buildId or version differs from current session's initial baseline, we have an update!
+    // Server build differs from client session build: update is genuinely available
     const isNewBuild = serverInfo.buildId !== this.currentBuildId;
     const isNewVersion = serverInfo.version !== this.currentVersion;
 
@@ -144,24 +168,35 @@ export class UpdateService {
     return { hasUpdate: false, newVersion: null };
   }
 
-  // Perform a clean cache-busting reload
-  public async applyUpdateAndReload() {
+  // Perform a clean cache-busting reload and save new version to stop looping
+  public async applyUpdateAndReload(targetVersion?: AppVersionInfo | null) {
     try {
-      // 1. Clear postponed state
+      // 1. If target version was supplied, or fetch server info, immediately record as installed
+      const targetBuildId = targetVersion?.buildId || (await this.fetchServerVersion())?.buildId || 'ab-build-v1.3.0';
+      const targetVer = targetVersion?.version || '1.3.0';
+
+      this.currentBuildId = targetBuildId;
+      this.currentVersion = targetVer;
+      localStorage.setItem(INSTALLED_BUILD_KEY, targetBuildId);
+      sessionStorage.setItem(INITIAL_BUILD_KEY, targetBuildId);
+      sessionStorage.setItem(INITIAL_VERSION_KEY, targetVer);
+      localStorage.setItem(JUST_UPDATED_KEY, Date.now().toString());
+
+      // 2. Clear postponed state
       localStorage.removeItem(POSTPONED_UNTIL_KEY);
 
-      // 2. Clear caches if available
+      // 3. Clear caches if available
       if ('caches' in window) {
         const cacheKeys = await caches.keys();
         await Promise.all(cacheKeys.map((key) => caches.delete(key)));
       }
 
-      // 3. Inform service worker to skip waiting if present
+      // 4. Inform service worker to skip waiting if present
       if (this.swRegistration && this.swRegistration.waiting) {
         this.swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
 
-      // 4. Force hard reload with timestamp query to bypass browser disk cache
+      // 5. Force hard reload with timestamp query to bypass browser disk cache
       const url = new URL(window.location.href);
       url.searchParams.set('v_sync', Date.now().toString());
       window.location.replace(url.toString());
