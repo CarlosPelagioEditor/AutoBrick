@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { updateService, AppVersionInfo } from '../services/updateService';
 
 interface UpdateContextType {
+  isOnline: boolean;
   isUpdateAvailable: boolean;
   isDefinitive: boolean;
   isModalOpen: boolean;
@@ -25,6 +26,9 @@ const UpdateContext = createContext<UpdateContextType | undefined>(undefined);
 const FIVE_MINUTES_SECONDS = 5 * 60;
 
 export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  });
   const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
   const [isDefinitive, setIsDefinitive] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -46,8 +50,14 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }, [remainingSeconds]);
 
-  // Execute manual or scheduled check
+  // Execute manual or scheduled check (ONLY WHEN ONLINE)
   const checkForUpdates = useCallback(async (showNotification = true): Promise<boolean> => {
+    // If user is currently offline, never trigger or check updates
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.log('[AutoBrick Update] Device is offline. Update check skipped, running in offline mode.');
+      return false;
+    }
+
     setIsChecking(true);
     try {
       const result = await updateService.checkForUpdate();
@@ -64,13 +74,13 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             setRemainingSeconds(diff);
             setIsDefinitive(false);
           } else {
-            // Expired! Make it definitive
+            // Expired! Make it definitive only if online
             setIsDefinitive(true);
             setRemainingSeconds(0);
             setIsModalOpen(true);
           }
         } else if (showNotification) {
-          // First time seeing this update: open modal
+          // First time seeing this update: open modal automatically
           setIsDefinitive(false);
           setIsModalOpen(true);
         }
@@ -78,7 +88,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       return false;
     } catch (e) {
-      console.warn('Update check error:', e);
+      console.warn('Update check error (network/offline):', e);
       return false;
     } finally {
       setIsChecking(false);
@@ -100,6 +110,10 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Apply update now
   const applyUpdateNow = useCallback(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      alert('Você está offline no momento. Conecte-se à internet para baixar e sincronizar a nova versão.');
+      return;
+    }
     setIsUpdating(true);
     try {
       await updateService.applyUpdateAndReload();
@@ -109,7 +123,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
-  // Open modal manually
+  // Open modal manually (only if online or test)
   const openUpdateModal = useCallback(() => {
     setIsModalOpen(true);
   }, []);
@@ -137,9 +151,9 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
-  // Setup countdown tick
+  // Setup countdown tick (runs only when online)
   useEffect(() => {
-    if (postponedUntil && isUpdateAvailable) {
+    if (postponedUntil && isUpdateAvailable && isOnline) {
       const calculateRemaining = () => {
         const now = Date.now();
         const diff = Math.ceil((postponedUntil - now) / 1000);
@@ -164,45 +178,76 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       };
     }
-  }, [postponedUntil, isUpdateAvailable]);
+  }, [postponedUntil, isUpdateAvailable, isOnline]);
 
-  // Setup periodic polling for code changes (every 30 seconds)
+  // Network Online/Offline Listeners & Automatic Sync when Reconnecting
   useEffect(() => {
-    // Initial check after 3 seconds
-    const initialTimer = setTimeout(() => {
+    const handleOnline = () => {
+      console.log('[AutoBrick Network] Device connected to the internet. Checking for updates automatically...');
+      setIsOnline(true);
+      
+      // When connection is restored, immediately check for code updates and trigger the notification system if new version exists!
       checkForUpdates(true);
-    }, 3000);
+    };
+
+    const handleOffline = () => {
+      console.log('[AutoBrick Network] Device is offline. Operating with local data & caching.');
+      setIsOnline(false);
+      // Close update modal if open so the user can continue their work smoothly offline
+      setIsModalOpen(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [checkForUpdates]);
+
+  // Setup periodic polling for code changes (every 35 seconds, only when online)
+  useEffect(() => {
+    // Initial check after 2.5 seconds if online
+    const initialTimer = setTimeout(() => {
+      if (navigator.onLine) {
+        checkForUpdates(true);
+      }
+    }, 2500);
 
     // Register service worker listener
     updateService.registerServiceWorker((newVer) => {
-      setNewVersionInfo(newVer);
-      setIsUpdateAvailable(true);
-      setIsModalOpen(true);
+      if (navigator.onLine) {
+        setNewVersionInfo(newVer);
+        setIsUpdateAvailable(true);
+        setIsModalOpen(true);
+      }
     });
 
-    // Polling every 35 seconds
+    // Polling every 35 seconds (only when online)
     checkIntervalRef.current = setInterval(() => {
-      checkForUpdates(false);
+      if (navigator.onLine) {
+        checkForUpdates(false);
+      }
     }, 35000);
 
-    // Check on window focus and online
-    const handleFocus = () => checkForUpdates(false);
-    const handleOnline = () => checkForUpdates(false);
+    // Check on window focus / visibility change if online
+    const handleFocus = () => {
+      if (navigator.onLine) checkForUpdates(false);
+    };
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
         checkForUpdates(false);
       }
     };
 
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('online', handleOnline);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearTimeout(initialTimer);
       if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
       window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('online', handleOnline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [checkForUpdates]);
@@ -210,6 +255,7 @@ export const UpdateProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return (
     <UpdateContext.Provider
       value={{
+        isOnline,
         isUpdateAvailable,
         isDefinitive,
         isModalOpen,

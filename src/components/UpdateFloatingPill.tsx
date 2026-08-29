@@ -4,6 +4,7 @@ import { Clock, RefreshCw, Zap, ArrowUpCircle } from 'lucide-react';
 
 export const UpdateFloatingPill: React.FC = () => {
   const {
+    isOnline,
     isUpdateAvailable,
     isModalOpen,
     isDefinitive,
@@ -14,8 +15,8 @@ export const UpdateFloatingPill: React.FC = () => {
     applyUpdateNow,
   } = useUpdate();
 
-  // Only show the floating pill if update is available, modal is dismissed/postponed, and not yet definitive
-  if (!isUpdateAvailable || isModalOpen || isDefinitive) {
+  // Only show the floating pill if user is online, update is available, modal is dismissed/postponed, and not yet definitive
+  if (!isOnline || !isUpdateAvailable || isModalOpen || isDefinitive) {
     return null;
   }
 

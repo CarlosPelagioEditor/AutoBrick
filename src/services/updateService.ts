@@ -73,8 +73,16 @@ export class UpdateService {
     }
   }
 
-  // Fetch current version from server
+  // Check if browser is online
+  public isOnline(): boolean {
+    return typeof navigator !== 'undefined' && navigator.onLine;
+  }
+
+  // Fetch current version from server (only if online)
   public async fetchServerVersion(): Promise<AppVersionInfo | null> {
+    if (!this.isOnline()) {
+      return null;
+    }
     try {
       const timestamp = Date.now();
       const response = await fetch(`/api/app-version?_t=${timestamp}`, {
@@ -97,13 +105,17 @@ export class UpdateService {
       const data: AppVersionInfo = await response.json();
       return data;
     } catch (err) {
-      console.warn('[AutoBrick Update] Version check failed:', err);
+      console.warn('[AutoBrick Update] Version check failed (network/offline):', err);
       return null;
     }
   }
 
   // Check if an update is available comparing initial build to current server build
   public async checkForUpdate(): Promise<{ hasUpdate: boolean; newVersion: AppVersionInfo | null }> {
+    if (!this.isOnline()) {
+      return { hasUpdate: false, newVersion: null };
+    }
+
     const serverInfo = await this.fetchServerVersion();
     if (!serverInfo) {
       return { hasUpdate: false, newVersion: null };

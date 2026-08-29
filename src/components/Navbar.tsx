@@ -23,6 +23,8 @@ import {
   RefreshCw,
   Clock,
   Zap,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 
 export type AppTab =
@@ -56,6 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { currentUser, users, logout, switchUser, cloudSyncStatus, isCloudSyncing } = useAuth();
   const {
+    isOnline,
     isUpdateAvailable,
     isDefinitive,
     formattedTimeRemaining,
@@ -213,8 +216,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Quick Actions & User Switcher */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             
-            {/* Automatic Update Indicator / Trigger */}
-            {isUpdateAvailable && (
+            {/* Offline Mode Indicator */}
+            {!isOnline && (
+              <div
+                title="Você está offline. O AutoBrick está funcionando normalmente com seus dados locais salvos."
+                className="px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 text-xs font-bold flex items-center gap-1.5"
+              >
+                <WifiOff className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">Modo Offline</span>
+              </div>
+            )}
+
+            {/* Automatic Update Indicator / Trigger (Only when Online) */}
+            {isOnline && isUpdateAvailable && (
               <button
                 type="button"
                 onClick={openUpdateModal}

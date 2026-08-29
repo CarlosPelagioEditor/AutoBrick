@@ -4,6 +4,7 @@ import { Sparkles, RefreshCw, Clock, AlertTriangle, CheckCircle2, ShieldAlert, Z
 
 export const UpdateModal: React.FC = () => {
   const {
+    isOnline,
     isUpdateAvailable,
     isModalOpen,
     isDefinitive,
@@ -16,7 +17,7 @@ export const UpdateModal: React.FC = () => {
     closeUpdateModal,
   } = useUpdate();
 
-  if (!isUpdateAvailable || !isModalOpen) {
+  if (!isOnline || !isUpdateAvailable || !isModalOpen) {
     return null;
   }
 

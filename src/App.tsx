@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { UpdateProvider } from './context/UpdateContext';
 import { UpdateModal } from './components/UpdateModal';
 import { UpdateFloatingPill } from './components/UpdateFloatingPill';
+import { NetworkStatusBanner } from './components/NetworkStatusBanner';
 import { Navbar, AppTab } from './components/Navbar';
 import { Dashboard } from './components/Dashboard';
 import { VehicleList } from './components/VehicleList';
@@ -108,6 +109,9 @@ function MainApp() {
         onOpenReceiptModal={() => handleOpenReceiptModal()}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
       />
+
+      {/* Network Online / Offline Status Notification */}
+      <NetworkStatusBanner />
 
       {/* Main App Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 overflow-x-hidden">

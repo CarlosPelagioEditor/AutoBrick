@@ -41,6 +41,7 @@ export const DataBackupExport: React.FC = () => {
     isCloudSyncing,
   } = useAuth();
   const {
+    isOnline,
     checkForUpdatesManually,
     triggerTestUpdate,
     isChecking: isCheckingUpdate,
@@ -58,6 +59,11 @@ export const DataBackupExport: React.FC = () => {
 
   const handleManualCheckUpdate = async () => {
     setUpdateCheckMessage(null);
+    if (!isOnline) {
+      setUpdateCheckMessage('Você está offline no momento. O sistema de atualização será ativado automaticamente assim que conectar à internet.');
+      setTimeout(() => setUpdateCheckMessage(null), 5000);
+      return;
+    }
     const hasUpdate = await checkForUpdatesManually();
     if (!hasUpdate) {
       setUpdateCheckMessage('Seu AutoBrick já está na versão mais recente e sincronizado!');
@@ -519,6 +525,15 @@ export const DataBackupExport: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${
+                isOnline
+                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                  : 'bg-slate-800 text-slate-400 border-slate-700'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                <span>{isOnline ? 'Conectado (Online)' : 'Modo Offline (Local)'}</span>
+              </span>
+
               <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-amber-400">
                 Versão v1.3.0
               </span>
