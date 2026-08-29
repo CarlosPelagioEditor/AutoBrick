@@ -116,12 +116,23 @@ export interface BrickItem {
   hiddenDefectReservePercent: number; // Reserva de garantia / vícios ocultos (% sobre compra)
   notes?: string;
 
+  // Fotos do Produto & Anúncio
+  photos?: string[]; // URLs ou Base64 das fotos reais do item
+  photoUrl?: string; // Foto principal (compatibilidade retroativa)
+
   // D. Dados da Venda (Fechamento)
   saleDealType?: SaleDealType;
   salePrice?: number;
   saleDate?: string; // YYYY-MM-DD
   cardFees?: number; // Taxas de maquininha ou intermediação
   tradeIn?: TradeInDetails;
+  salePaymentMethod?: PaymentMethod; // Método de recebimento da venda
+
+  // Comprovante de Pagamento PIX (quando vendido via Pix)
+  pixReceiptUrl?: string; // Base64 ou URL do comprovante PIX
+  pixReceiptName?: string; // Nome do arquivo do comprovante (ex: comprovante-pix.pdf / .jpg)
+  pixReceiptDate?: string; // Data em que o comprovante foi anexado
+  pixReceiptTransactionId?: string; // ID da transação ou autenticação bancária (opcional)
 
   // IA Cache & Metadados
   copilotAnalysis?: CopilotAnalysis;

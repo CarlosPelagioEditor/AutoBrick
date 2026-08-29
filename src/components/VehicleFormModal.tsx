@@ -7,6 +7,8 @@ import {
   getInventoryDurationDetails,
 } from '../utils/calculations';
 import { CATEGORIES_CONFIG, CATEGORIES_LIST, ITEM_PRESETS, getCategoryInfo } from '../utils/categories';
+import { PhotoUploader } from './PhotoUploader';
+import { ImageViewerModal } from './ImageViewerModal';
 import {
   X,
   Sparkles,
@@ -69,6 +71,7 @@ const defaultItem: Partial<BrickItem> = {
   notes: '',
   salePrice: 2150,
   cardFees: 0,
+  photos: [],
   yearModel: '',
   plate: '',
   color: '',
@@ -91,11 +94,14 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<Partial<BrickItem>>(defaultItem);
   const [activeSection, setActiveSection] = useState<'A' | 'B' | 'C' | 'D'>('A');
+  const [previewPhotoIndex, setPreviewPhotoIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (initialVehicle) {
+      const existingPhotos = initialVehicle.photos || (initialVehicle.photoUrl ? [initialVehicle.photoUrl] : []);
       setFormData({
         ...initialVehicle,
+        photos: existingPhotos,
         category: initialVehicle.category || (initialVehicle.plate ? 'vehicles' : 'other'),
         tradeIn: initialVehicle.tradeIn || {
           hasTradeIn: false,
@@ -108,6 +114,7 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     } else {
       setFormData({
         ...defaultItem,
+        photos: [],
         id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         purchaseDate: new Date().toISOString().split('T')[0],
       });
@@ -196,6 +203,8 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     commissions: Number(formData.commissions) || 0,
     marketing: Number(formData.marketing) || 0,
     hiddenDefectReservePercent: Number(formData.hiddenDefectReservePercent) || 0,
+    photos: formData.photos || [],
+    photoUrl: (formData.photos && formData.photos.length > 0) ? formData.photos[0] : (formData.photoUrl || undefined),
     createdAt: formData.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -511,6 +520,16 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                   )}
 
                 </div>
+              </div>
+
+              {/* Box 1.5: Fotos do Produto */}
+              <div className="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 space-y-3">
+                <PhotoUploader
+                  photos={formData.photos || []}
+                  onChange={(newPhotos) => handleChange('photos', newPhotos)}
+                  maxPhotos={8}
+                  onPreviewPhoto={(photoUrl, index) => setPreviewPhotoIndex(index)}
+                />
               </div>
 
               {/* Box 2: Valores Financeiros de Compra */}
@@ -1075,6 +1094,17 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
         </form>
       </div>
+
+      {/* Fullscreen Photo Lightbox */}
+      {previewPhotoIndex !== null && (
+        <ImageViewerModal
+          isOpen={previewPhotoIndex !== null}
+          onClose={() => setPreviewPhotoIndex(null)}
+          photos={formData.photos || []}
+          initialIndex={previewPhotoIndex}
+          title={formData.model || 'Fotos do Produto'}
+        />
+      )}
     </div>
   );
 };

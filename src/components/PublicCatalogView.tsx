@@ -16,6 +16,8 @@ import { useAuth } from '../context/AuthContext';
 import { BrickItem, ItemCategory } from '../types';
 import { formatBRL, calculateVehicleMetrics } from '../utils/calculations';
 import { getCategoryInfo } from '../utils/categories';
+import { ImageViewerModal } from './ImageViewerModal';
+import { Camera } from 'lucide-react';
 
 export const PublicCatalogView: React.FC = () => {
   const { vehicles, currentUser } = useAuth();
@@ -24,6 +26,7 @@ export const PublicCatalogView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [copied, setCopied] = useState<boolean>(false);
   const [sellerWhatsapp, setSellerWhatsapp] = useState<string>('5511999999999');
+  const [previewPhotoItem, setPreviewPhotoItem] = useState<{ photos: string[]; title: string; index?: number } | null>(null);
 
   // Filter in-stock items only
   const inStockItems = vehicles.filter((v) => v.status === 'in_stock');
@@ -166,6 +169,26 @@ export const PublicCatalogView: React.FC = () => {
                 className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-3xl p-5 flex flex-col justify-between space-y-4 transition-all group shadow-md"
               >
                 <div className="space-y-3">
+                  {/* Photo Display if available */}
+                  {item.photos && item.photos.length > 0 && (
+                    <div
+                      onClick={() => setPreviewPhotoItem({ photos: item.photos!, title: item.model, index: 0 })}
+                      className="w-full h-44 rounded-2xl overflow-hidden border border-slate-800 relative group/pic cursor-zoom-in bg-slate-950 shadow-inner"
+                    >
+                      <img
+                        src={item.photos[0]}
+                        alt={item.model}
+                        className="w-full h-full object-cover group-hover/pic:scale-105 transition-transform duration-300"
+                      />
+                      {item.photos.length > 1 && (
+                        <span className="absolute bottom-2 right-2 px-2 py-1 rounded-lg bg-slate-950/85 text-amber-300 text-xs font-black border border-amber-500/30 flex items-center gap-1 backdrop-blur-sm shadow">
+                          <Camera className="w-3.5 h-3.5" />
+                          {item.photos.length} fotos
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Category & Badge */}
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
@@ -220,6 +243,17 @@ export const PublicCatalogView: React.FC = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Catalog Lightbox */}
+      {previewPhotoItem && (
+        <ImageViewerModal
+          isOpen={!!previewPhotoItem}
+          onClose={() => setPreviewPhotoItem(null)}
+          photos={previewPhotoItem.photos}
+          title={previewPhotoItem.title}
+          initialIndex={previewPhotoItem.index || 0}
+        />
       )}
     </div>
   );

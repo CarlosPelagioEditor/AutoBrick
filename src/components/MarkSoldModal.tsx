@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BrickItem, ItemCategory, ItemCondition, PaymentMethod, SaleDealType } from '../types';
 import { CATEGORIES_LIST, getCategoryInfo } from '../utils/categories';
+import { PixReceiptUploader } from './PixReceiptUploader';
+import { ImageViewerModal } from './ImageViewerModal';
 import {
   calculateVehicleMetrics,
   calculateTradeSaleDetails,
@@ -85,6 +87,13 @@ export const MarkSoldModal: React.FC<MarkSoldModalProps> = ({
   const [tradeExpectedResalePrice, setTradeExpectedResalePrice] = useState<number>(0);
   const [autoAddToStock, setAutoAddToStock] = useState<boolean>(true);
 
+  // Pix Receipt State
+  const [pixReceiptUrl, setPixReceiptUrl] = useState<string | undefined>(undefined);
+  const [pixReceiptName, setPixReceiptName] = useState<string | undefined>(undefined);
+  const [pixReceiptDate, setPixReceiptDate] = useState<string | undefined>(undefined);
+  const [pixReceiptTransactionId, setPixReceiptTransactionId] = useState<string | undefined>(undefined);
+  const [previewPixReceipt, setPreviewPixReceipt] = useState<{ url: string; name?: string } | null>(null);
+
   // AI Valuation State
   const [isLoadingAiTrade, setIsLoadingAiTrade] = useState<boolean>(false);
   const [aiTradeValuation, setAiTradeValuation] = useState<any>(null);
@@ -105,6 +114,12 @@ export const MarkSoldModal: React.FC<MarkSoldModalProps> = ({
       setBuyerInfo('');
       setAiTradeValuation(null);
       setShowAdvancedTradeDetails(false);
+
+      // Pix Receipt initialization
+      setPixReceiptUrl(item.pixReceiptUrl);
+      setPixReceiptName(item.pixReceiptName);
+      setPixReceiptDate(item.pixReceiptDate);
+      setPixReceiptTransactionId(item.pixReceiptTransactionId);
 
       if (item.tradeIn && item.tradeIn.hasTradeIn) {
         setDealType(item.tradeIn.dealType || (item.tradeIn.cashReceived ? 'cash_and_trade' : 'trade_only'));
@@ -250,6 +265,11 @@ export const MarkSoldModal: React.FC<MarkSoldModalProps> = ({
       saleDate,
       cardFees: Number(cardFees) || 0,
       paymentMethod: dealType === 'cash_only' ? cashPaymentMethod : 'com_troca',
+      salePaymentMethod: dealType === 'cash_only' ? cashPaymentMethod : tradePaymentMethod,
+      pixReceiptUrl: pixReceiptUrl || undefined,
+      pixReceiptName: pixReceiptName || undefined,
+      pixReceiptDate: pixReceiptDate || undefined,
+      pixReceiptTransactionId: pixReceiptTransactionId || undefined,
       notes: [
         notes.trim(),
         buyerInfo.trim() ? `Comprador: ${buyerInfo.trim()}` : '',
@@ -338,6 +358,11 @@ export const MarkSoldModal: React.FC<MarkSoldModalProps> = ({
           saleDate: undefined,
           salePrice: undefined,
           saleDealType: undefined,
+          salePaymentMethod: undefined,
+          pixReceiptUrl: undefined,
+          pixReceiptName: undefined,
+          pixReceiptDate: undefined,
+          pixReceiptTransactionId: undefined,
           tradeIn: undefined,
           updatedAt: new Date().toISOString(),
         });
@@ -577,6 +602,25 @@ export const MarkSoldModal: React.FC<MarkSoldModalProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Upload Comprovante PIX (quando selecionado PIX ou se já tiver comprovante anexado) */}
+              {(cashPaymentMethod === 'pix' || pixReceiptUrl) && (
+                <div className="pt-2">
+                  <PixReceiptUploader
+                    receiptUrl={pixReceiptUrl}
+                    receiptName={pixReceiptName}
+                    receiptDate={pixReceiptDate}
+                    transactionId={pixReceiptTransactionId}
+                    onChange={(data) => {
+                      setPixReceiptUrl(data.receiptUrl);
+                      setPixReceiptName(data.receiptName);
+                      setPixReceiptDate(data.receiptDate);
+                      setPixReceiptTransactionId(data.transactionId);
+                    }}
+                    onPreview={(url, name) => setPreviewPixReceipt({ url, name })}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -644,6 +688,25 @@ export const MarkSoldModal: React.FC<MarkSoldModalProps> = ({
                     </select>
                   </div>
                 </div>
+
+                {/* Upload Comprovante PIX (Troca com volta no Pix) */}
+                {(tradePaymentMethod === 'pix' || pixReceiptUrl) && (
+                  <div className="pt-2">
+                    <PixReceiptUploader
+                      receiptUrl={pixReceiptUrl}
+                      receiptName={pixReceiptName}
+                      receiptDate={pixReceiptDate}
+                      transactionId={pixReceiptTransactionId}
+                      onChange={(data) => {
+                        setPixReceiptUrl(data.receiptUrl);
+                        setPixReceiptName(data.receiptName);
+                        setPixReceiptDate(data.receiptDate);
+                        setPixReceiptTransactionId(data.transactionId);
+                      }}
+                      onPreview={(url, name) => setPreviewPixReceipt({ url, name })}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Trade Item Details with AI Market Search */}
@@ -1347,6 +1410,18 @@ export const MarkSoldModal: React.FC<MarkSoldModalProps> = ({
 
         </form>
       </div>
+
+      {/* Pix Receipt Viewer Lightbox */}
+      {previewPixReceipt && (
+        <ImageViewerModal
+          isOpen={!!previewPixReceipt}
+          onClose={() => setPreviewPixReceipt(null)}
+          photos={[previewPixReceipt.url]}
+          title={`Comprovante PIX - ${item.model}`}
+          isPixReceipt={true}
+          fileName={previewPixReceipt.name}
+        />
+      )}
     </div>
   );
 };

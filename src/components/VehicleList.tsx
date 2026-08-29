@@ -9,6 +9,7 @@ import {
 import { BrickItem, ItemCategory, ItemStatus } from '../types';
 import { CATEGORIES_CONFIG, CATEGORIES_LIST, getCategoryInfo } from '../utils/categories';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { ImageViewerModal } from './ImageViewerModal';
 import {
   Search,
   Plus,
@@ -37,6 +38,9 @@ import {
   Calendar,
   CheckCircle2,
   FileText,
+  Camera,
+  Receipt,
+  Zap,
 } from 'lucide-react';
 
 interface VehicleListProps {
@@ -66,6 +70,13 @@ export const VehicleList: React.FC<VehicleListProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<'all' | ItemCategory>('all');
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<BrickItem | null>(null);
+  const [previewItemState, setPreviewItemState] = useState<{
+    photos: string[];
+    title: string;
+    initialIndex?: number;
+    isPixReceipt?: boolean;
+    fileName?: string;
+  } | null>(null);
 
   // Filter items
   const filteredItems = vehicles.filter((item) => {
@@ -275,9 +286,35 @@ export const VehicleList: React.FC<VehicleListProps> = ({
                   
                   {/* Left Column: Product Info & Badges */}
                   <div className="flex items-start gap-4 flex-1">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-2xl font-black shrink-0">
-                      {categoryMeta.emoji}
-                    </div>
+                    {item.photos && item.photos.length > 0 ? (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewItemState({ photos: item.photos!, title: item.model, initialIndex: 0 });
+                        }}
+                        title="Ver fotos do item"
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-amber-500/30 relative shrink-0 group/photo cursor-zoom-in bg-slate-950 shadow-md hover:border-amber-400 transition-all"
+                      >
+                        <img
+                          src={item.photos[0]}
+                          alt={item.model}
+                          className="w-full h-full object-cover group-hover/photo:scale-110 transition-transform duration-200"
+                        />
+                        {item.photos.length > 1 && (
+                          <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-slate-950/90 text-amber-300 text-[9px] font-black border border-amber-500/40 flex items-center gap-0.5 shadow-sm">
+                            <Camera className="w-2.5 h-2.5" />
+                            {item.photos.length}
+                          </span>
+                        )}
+                        <span className="absolute top-1 left-1 text-[11px] drop-shadow">
+                          {categoryMeta.emoji}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-2xl font-black shrink-0">
+                        {categoryMeta.emoji}
+                      </div>
+                    )}
 
                     <div className="space-y-1.5 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -307,6 +344,41 @@ export const VehicleList: React.FC<VehicleListProps> = ({
                               </span>
                             )}
                           </span>
+                        )}
+
+                        {/* Badges for Photos & Pix Receipt */}
+                        {item.photos && item.photos.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewItemState({ photos: item.photos!, title: item.model, initialIndex: 0 });
+                            }}
+                            className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                          >
+                            <Camera className="w-3 h-3 text-amber-400" />
+                            <span>{item.photos.length} {item.photos.length === 1 ? 'Foto' : 'Fotos'}</span>
+                          </button>
+                        )}
+
+                        {item.pixReceiptUrl && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewItemState({
+                                photos: [item.pixReceiptUrl!],
+                                title: `Comprovante PIX - ${item.model}`,
+                                isPixReceipt: true,
+                                fileName: item.pixReceiptName,
+                              });
+                            }}
+                            title="Ver Comprovante PIX"
+                            className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-extrabold flex items-center gap-1 transition-all cursor-pointer shadow-sm animate-pulse"
+                          >
+                            <Zap className="w-3 h-3 text-emerald-400 fill-emerald-400" />
+                            <span>Comprovante PIX</span>
+                          </button>
                         )}
                       </div>
 
@@ -639,6 +711,19 @@ export const VehicleList: React.FC<VehicleListProps> = ({
         onClose={() => setItemToDelete(null)}
         onConfirm={handleConfirmDelete}
       />
+
+      {/* Lightbox / Visualizador de Fotos e Comprovante PIX */}
+      {previewItemState && (
+        <ImageViewerModal
+          isOpen={!!previewItemState}
+          onClose={() => setPreviewItemState(null)}
+          photos={previewItemState.photos}
+          title={previewItemState.title}
+          initialIndex={previewItemState.initialIndex || 0}
+          isPixReceipt={previewItemState.isPixReceipt}
+          fileName={previewItemState.fileName}
+        />
+      )}
 
     </div>
   );
