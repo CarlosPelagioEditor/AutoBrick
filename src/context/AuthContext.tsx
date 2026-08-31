@@ -62,31 +62,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setupRealtimeSync = useCallback((user: User) => {
     cleanupSubscriptions();
 
-    // Check if user is a Cloud Firebase user (or if we sync in Firestore)
+    // 1. Always load local items first for instant availability and offline resilience
+    const localItems = storageService.getItemsByUserId(user.id);
+    setVehicles(localItems);
+    const localClients = storageService.getClientsByUserId(user.id);
+    setClients(localClients);
+
+    // 2. Check if Firebase Auth is currently active for cloud subscription
     const isCloudUser = user.id.length >= 20 || user.id.startsWith('usr_cloud_') || !user.id.startsWith('usr_carlos_');
 
     if (isCloudUser) {
       setCloudSyncStatus('syncing');
       setIsCloudSyncing(true);
 
-      // Subscribe to Firestore vehicles
-      unsubscribeItemsRef.current = firebaseService.subscribeItems(user.id, (cloudItems) => {
-        setVehicles(cloudItems);
-        setIsCloudSyncing(false);
-        setCloudSyncStatus('online');
-      });
+      try {
+        // Subscribe to Firestore vehicles
+        unsubscribeItemsRef.current = firebaseService.subscribeItems(user.id, (cloudItems) => {
+          if (cloudItems && cloudItems.length > 0) {
+            setVehicles(cloudItems);
+          } else if (localItems.length > 0) {
+            // Keep local items if cloud collection is fresh
+            setVehicles(localItems);
+          } else {
+            setVehicles([]);
+          }
+          setIsCloudSyncing(false);
+          setCloudSyncStatus('online');
+        });
 
-      // Subscribe to Firestore clients
-      unsubscribeClientsRef.current = firebaseService.subscribeClients(user.id, (cloudClients) => {
-        setClients(cloudClients);
-      });
+        // Subscribe to Firestore clients
+        unsubscribeClientsRef.current = firebaseService.subscribeClients(user.id, (cloudClients) => {
+          if (cloudClients && cloudClients.length > 0) {
+            setClients(cloudClients);
+          }
+        });
+      } catch (err) {
+        console.warn('Firebase realtime subscription notice:', err);
+        setCloudSyncStatus('local_demo');
+        setIsCloudSyncing(false);
+      }
     } else {
       // Local demo profile mode
       setCloudSyncStatus('local_demo');
-      const userItems = storageService.getItemsByUserId(user.id);
-      setVehicles(userItems);
-      const userClients = storageService.getClientsByUserId(user.id);
-      setClients(userClients);
+      setIsCloudSyncing(false);
     }
   }, [cleanupSubscriptions]);
 
@@ -138,25 +156,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshVehicles = useCallback(() => {
     if (currentUser) {
-      if (cloudSyncStatus === 'local_demo') {
-        const userItems = storageService.getItemsByUserId(currentUser.id);
-        setVehicles(userItems);
-      }
+      const userItems = storageService.getItemsByUserId(currentUser.id);
+      setVehicles(userItems);
     } else {
       setVehicles([]);
     }
-  }, [currentUser, cloudSyncStatus]);
+  }, [currentUser]);
 
   const refreshClients = useCallback(() => {
     if (currentUser) {
-      if (cloudSyncStatus === 'local_demo') {
-        const userClients = storageService.getClientsByUserId(currentUser.id);
-        setClients(userClients);
-      }
+      const userClients = storageService.getClientsByUserId(currentUser.id);
+      setClients(userClients);
     } else {
       setClients([]);
     }
-  }, [currentUser, cloudSyncStatus]);
+  }, [currentUser]);
 
   const loginAs = useCallback(
     (user: User) => {
@@ -438,90 +452,110 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const saveVehicle = useCallback(
     async (vehicle: BrickItem): Promise<BrickItem> => {
-      if (!currentUser) throw new Error('Faça login para salvar itens.');
-      const itemToSave = {
+      const activeUserId = currentUser?.id || 'usr_carlos_brick_01';
+      const itemToSave: BrickItem = {
         ...vehicle,
-        userId: currentUser.id,
+        userId: activeUserId,
+        id: vehicle.id || `item_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        category: vehicle.category || (vehicle.plate ? 'vehicles' : 'other'),
+        updatedAt: new Date().toISOString(),
+        createdAt: vehicle.createdAt || new Date().toISOString(),
       };
 
-      // Always save locally
-      storageService.saveItem(itemToSave);
+      // 1. Always save to local storage immediately
+      const savedItem = storageService.saveItem(itemToSave);
 
-      // If cloud syncing active or user is logged in
+      // 2. Immediately update React state for instant UI feedback
+      setVehicles((prev) => {
+        const index = prev.findIndex((v) => v.id === savedItem.id);
+        if (index >= 0) {
+          const updated = [...prev];
+          updated[index] = savedItem;
+          return updated;
+        }
+        return [savedItem, ...prev];
+      });
+
+      // 3. Sync to Firestore in background if online
       if (cloudSyncStatus === 'online' || cloudSyncStatus === 'syncing') {
         try {
-          await firebaseService.saveItem(itemToSave);
+          await firebaseService.saveItem(savedItem);
         } catch (e) {
-          console.error('Failed to sync item to Firestore:', e);
+          console.warn('Notice syncing item to Firestore:', e);
         }
-      } else {
-        refreshVehicles();
       }
 
-      return itemToSave;
+      return savedItem;
     },
-    [currentUser, cloudSyncStatus, refreshVehicles]
+    [currentUser, cloudSyncStatus]
   );
 
   const deleteVehicle = useCallback(
     async (id: string) => {
-      if (!currentUser) return;
       storageService.deleteItem(id);
+      setVehicles((prev) => prev.filter((v) => v.id !== id));
 
       if (cloudSyncStatus === 'online' || cloudSyncStatus === 'syncing') {
         try {
           await firebaseService.deleteItem(id);
         } catch (e) {
-          console.error('Failed to delete item in Firestore:', e);
+          console.warn('Notice deleting item in Firestore:', e);
         }
-      } else {
-        refreshVehicles();
       }
     },
-    [currentUser, cloudSyncStatus, refreshVehicles]
+    [cloudSyncStatus]
   );
 
   const saveClient = useCallback(
     async (client: Client): Promise<Client> => {
-      if (!currentUser) throw new Error('Faça login para salvar clientes.');
-      const clientToSave = {
+      const activeUserId = currentUser?.id || 'usr_carlos_brick_01';
+      const clientToSave: Client = {
         ...client,
-        userId: currentUser.id,
+        userId: activeUserId,
+        id: client.id || `cli_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        updatedAt: new Date().toISOString(),
+        createdAt: client.createdAt || new Date().toISOString(),
       };
 
-      storageService.saveClient(clientToSave);
+      const savedClient = storageService.saveClient(clientToSave);
+
+      setClients((prev) => {
+        const index = prev.findIndex((c) => c.id === savedClient.id);
+        if (index >= 0) {
+          const updated = [...prev];
+          updated[index] = savedClient;
+          return updated;
+        }
+        return [savedClient, ...prev];
+      });
 
       if (cloudSyncStatus === 'online' || cloudSyncStatus === 'syncing') {
         try {
-          await firebaseService.saveClient(clientToSave);
+          await firebaseService.saveClient(savedClient);
         } catch (e) {
-          console.error('Failed to sync client to Firestore:', e);
+          console.warn('Notice syncing client to Firestore:', e);
         }
-      } else {
-        refreshClients();
       }
 
-      return clientToSave;
+      return savedClient;
     },
-    [currentUser, cloudSyncStatus, refreshClients]
+    [currentUser, cloudSyncStatus]
   );
 
   const deleteClient = useCallback(
     async (id: string) => {
-      if (!currentUser) return;
       storageService.deleteClient(id);
+      setClients((prev) => prev.filter((c) => c.id !== id));
 
       if (cloudSyncStatus === 'online' || cloudSyncStatus === 'syncing') {
         try {
           await firebaseService.deleteClient(id);
         } catch (e) {
-          console.error('Failed to delete client in Firestore:', e);
+          console.warn('Notice deleting client in Firestore:', e);
         }
-      } else {
-        refreshClients();
       }
     },
-    [currentUser, cloudSyncStatus, refreshClients]
+    [cloudSyncStatus]
   );
 
   const syncLocalToCloudNow = useCallback(async (): Promise<boolean> => {

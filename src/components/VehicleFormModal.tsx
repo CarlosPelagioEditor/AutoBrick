@@ -179,9 +179,10 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
   };
 
   // Compute live metrics
+  const itemId = formData.id && formData.id !== 'temp' ? formData.id : `item_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const itemForMetrics: BrickItem = {
     ...(formData as BrickItem),
-    id: formData.id || 'temp',
+    id: itemId,
     userId: formData.userId || 'current',
     category: formData.category || 'other',
     model: formData.model || 'Novo Item',
@@ -224,8 +225,13 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
       return;
     }
 
-    onSave(itemForMetrics);
-    onClose();
+    try {
+      onSave(itemForMetrics);
+      onClose();
+    } catch (err) {
+      console.error('Error saving item:', err);
+      alert('Erro ao salvar o item. Verifique os dados e tente novamente.');
+    }
   };
 
   const sections = [
